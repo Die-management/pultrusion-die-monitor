@@ -22,8 +22,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 .die-card-rev{font-size:12px;color:var(--muted);font-weight:600}
 
 .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #edf0f5;white-space:nowrap}th{background:#f8faff;color:#526078;font-size:11px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}
-.status{display:inline-flex;padding:4px 9px;border-radius:99px;font-weight:800;font-size:11px}.normal{background:#e4f7eb;color:#116536}.warning{background:#fff0d3;color:#8a4b00}.critical{background:#fde7e7;color:#a11b1b}.inactive{background:#e9edf2;color:#596579}
-.bar{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;min-width:100px}.bar span{height:100%;display:block;border-radius:20px}.filters{display:flex;gap:9px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:12px;font-weight:700;color:#536078}.field input,.field select,.field textarea{border:1px solid #ccd5e3;border-radius:8px;padding:10px;background:white;color:var(--ink);font:inherit;width:100%}.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}.alert{padding:12px 14px;border-radius:99px;margin:0 0 12px;background:#fff0d3;color:#7c4700;border:1px solid #f4d59a}.alert.red{background:#fde7e7;color:#9b1c1c;border-color:#f3b7b7}.hidden{display:none!important}.note{font-size:12px;color:var(--muted);margin-top:10px}.modal-backdrop{position:fixed;inset:0;background:#0b1428a8;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{max-width:560px;width:100%;background:white;border-radius:15px;padding:23px;box-shadow:0 20px 70px #0004}.modal h2{margin:0 0 8px}.modal p{color:#596579}.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}.footer{color:#758198;font-size:12px;text-align:center;padding:10px}
+.status{display:inline-flex;padding:4px 9px;border-radius:99px;font-weight:800;font-size:11px}.repair{background:#e6eaff;color:#293b8f}.normal{background:#e4f7eb;color:#116536}.warning{background:#fff0d3;color:#8a4b00}.critical{background:#fde7e7;color:#a11b1b}.inactive{background:#e9edf2;color:#596579}
+.bar{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;min-width:100px}.bar span{height:100%;display:block;border-radius:20px}.filters{display:flex;gap:9px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:12px;font-weight:700;color:#536078}.field input,.field select,.field textarea{border:1px solid #ccd5e3;border-radius:8px;padding:10px;background:white;color:var(--ink);font:inherit;width:100%}.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}.alert{padding:12px 14px;border-radius:99px;margin:0 0 12px;background:#fff0d3;color:#7c4700;border:1px solid #f4d59a}.alert.red{background:#fde7e7;color:#9b1c1c;border-color:#f3b7b7}.alert-die{font-weight:800;padding:1px 3px;border-radius:4px;white-space:nowrap}.alert-die.c1{color:#174ea6}.alert-die.c2{color:#7b1fa2}.alert-die.c3{color:#087f5b}.alert-die.c4{color:#b45309}.alert-die.c5{color:#b42318}.alert-die.c6{color:#075985}.alert-die.c7{color:#6d4c41}.alert-die.c8{color:#4b5563}.hidden{display:none!important}.note{font-size:12px;color:var(--muted);margin-top:10px}.modal-backdrop{position:fixed;inset:0;background:#0b1428a8;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{max-width:560px;width:100%;background:white;border-radius:15px;padding:23px;box-shadow:0 20px 70px #0004}.modal h2{margin:0 0 8px}.modal p{color:#596579}.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}.footer{color:#758198;font-size:12px;text-align:center;padding:10px}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0;background:#f8faff;padding:12px;border-radius:8px;border:1px solid var(--line)}
 .detail-item{font-size:13px}.detail-item label{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
 @media(max-width:800px){.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.form-grid{grid-template-columns:1fr 1fr}.wrap{padding:13px}header{padding:18px}.metric{font-size:25px}}
@@ -41,7 +41,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <button class="tab" data-tab="dies" onclick="showTab('dies')">Die master</button>
 <button class="tab" data-tab="production" onclick="showTab('production')">Daily production</button>
 <button class="tab" data-tab="maintenance" onclick="showTab('maintenance')">Maintenance / rechroming</button>
-<button class="tab" data-tab="settings" onclick="showTab('settings')">Settings & backup</button>
+<button class="tab" data-tab="settings" onclick="handleTabClick('settings')">Settings & backup</button>
 </nav>
 
 <!-- DASHBOARD TAB -->
@@ -57,6 +57,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
         <option value="Normal">Normal</option>
         <option value="Warning">Warning</option>
         <option value="Critical">Critical</option>
+        <option value="Under Maintenance">Under Maintenance</option>
         <option value="Inactive">Inactive</option>
       </select>
     </div>
@@ -69,7 +70,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <section id="tab-dies" class="hidden">
 <div class="panel"><div class="panel-head"><h2 id="dieFormTitle">Add die to master</h2><span class="sub">Set approved life and warning thresholds per die ID, revision, and side</span></div><div class="panel-body"><form id="dieForm"><input type="hidden" id="editDieKey"><div class="form-grid">
 <div class="field"><label>Die ID *</label><input id="dId" required placeholder="e.g. DIE-001"></div><div class="field"><label>Die Revision *</label><input id="dRevision" required placeholder="e.g. Rev 01 / R0 / A"></div><div class="field"><label>Profile / part number *</label><input id="dProfile" required placeholder="Profile name or part no."></div><div class="field"><label>Die Side *</label><select id="dSize" required><option value="A">Die Side A</option><option value="B">Die Side B</option></select></div>
-<div class="field"><label>Approved die life (m) *</label><input id="dLife" type="number" min="1" required placeholder="e.g. 25000"></div><div class="field"><label>Warning threshold (%)</label><input id="dWarn" type="number" min="1" max="100" value="80" required></div>
+<div class="field"><label>Approved die life (m) *</label><input id="dLife" type="number" min="1" required placeholder="e.g. 25000"></div><div class="field"><label>Warning threshold (%)</label><input id="dWarn" type="number" min="1" max="100" value="95" required></div>
 <div class="field"><label>Critical threshold (%)</label><input id="dCrit" type="number" min="1" max="200" value="100" required></div><div class="field"><label>Current cumulative life (m)</label><input id="dBase" type="number" min="0" value="0" required><small class="sub">Use this for dies already in service before starting the tracker.</small></div><div class="field"><label>Die status</label><select id="dActive"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Under maintenance">Under maintenance</option></select></div>
 <div class="field wide"><label>Notes</label><textarea id="dNotes" rows="2" placeholder="Condition, owner, storage location…"></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save die</button><button class="btn secondary" type="button" onclick="resetDieForm()">Clear form</button></div></form></div></div>
 <div class="panel"><div class="panel-head"><h2>Die master register</h2><span class="sub">Edit or retire a die revision without deleting its history</span></div><div class="table-wrap" id="masterTable"></div></div>
@@ -81,7 +82,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <div class="field"><label>Production date *</label><input type="date" id="pDate" required></div><div class="field"><label>Die ID *</label><select id="pDieId" required onchange="onProductionDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="pRevision" required disabled onchange="onProductionRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="pSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Machine</label><input id="pMachine" placeholder="Machine ID"></div>
 <div class="field"><label>Shift *</label><select id="pShift" required><option>General</option><option>1st</option><option>2nd</option><option>3rd</option></select></div><div class="field"><label>Production length (m) *</label><input id="pLength" type="number" min="0" step="0.01" required placeholder="e.g. 1250"></div><div class="field"><label>Operator / supervisor</label><input id="pOperator"></div>
 <div class="field wide"><label>Remarks / stoppage / quality observation</label><textarea id="pRemarks" rows="2"></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save production entry</button><button class="btn secondary" type="button" onclick="resetProdForm()">Clear</button></div></form><p class="note">Life increases by the entered metres for the specified Die ID + Revision + Side. For multiple shifts, add one entry per shift.</p></div></div>
-<div class="panel"><div class="panel-head"><h2>Production log</h2><div class="filters"><input id="prodSearch" placeholder="Search date / die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><button class="btn secondary small" onclick="exportProductionCSV()">Export production CSV</button></div></div><div class="table-wrap" id="productionTable"></div></div>
+<div class="panel"><div class="panel-head"><h2>Production log</h2><div class="filters"><input id="prodDateFilter" type="date" aria-label="Filter production by date" title="Filter by production date" onchange="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><input id="prodSearch" placeholder="Search die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><button class="btn secondary small" onclick="$('prodDateFilter').value='';$('prodSearch').value='';renderProduction()">Clear filters</button><button class="btn secondary small" onclick="exportProductionCSV()">Export production CSV</button></div></div><div class="table-wrap" id="productionTable"></div></div>
 </section>
 
 <!-- MAINTENANCE TAB -->
@@ -96,7 +97,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <!-- SETTINGS TAB -->
 <section id="tab-settings" class="hidden">
 <div class="panel"><div class="panel-head"><h2>Alert settings</h2></div><div class="panel-body"><div class="form-grid">
-<div class="field"><label>Default warning threshold (%)</label><input id="sWarn" type="number" min="1" max="100" value="80"></div><div class="field"><label>Default critical threshold (%)</label><input id="sCrit" type="number" min="1" max="200" value="100"></div><div class="field"><label>Popup behaviour</label><select id="sPopup"><option value="once">Show once per page session per die</option><option value="always">Show whenever critical dies exist</option><option value="off">Dashboard banner only</option></select></div>
+<div class="field"><label>Default warning threshold (%)</label><input id="sWarn" type="number" min="1" max="100" value="95"></div><div class="field"><label>Default critical threshold (%)</label><input id="sCrit" type="number" min="1" max="200" value="100"></div><div class="field"><label>Popup behaviour</label><select id="sPopup"><option value="once">Show once per page session per die</option><option value="always">Show whenever critical dies exist</option><option value="off">Dashboard banner only</option></select></div>
 </div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Data is saved in local browser storage &amp; Firebase. Download regular backups.</p></div></div>
 <div class="panel"><div class="panel-head"><h2>Demo data</h2></div><div class="panel-body"><p>Load sample dies and production to explore the dashboard. This will replace current data.</p><button class="btn" onclick="loadDemo()">Load / reset to demo data</button> <button class="btn danger" onclick="clearAll()">Clear all saved data</button></div></div>
 </section>
@@ -118,8 +119,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const dbCloud = firebase.firestore();
 
-let db = {dies:[], production:[], maintenance:[], settings:{warn:80, crit:100, popup:'once'}};
+let db = {dies:[], production:[], maintenance:[], settings:{warn:95, crit:100, popup:'once'}};
 let popupSeen = new Set();
+let settingsUnlocked = false;
+const SETTINGS_PASSWORD = "keci123";
 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0,10);
@@ -162,15 +165,21 @@ function life(d){
 
 function percent(d){return d.life > 0 ? life(d)/Number(d.life)*100 : 0}
 
+function latestMaintenance(d){
+  const k = getDieKey(d);
+  return db.maintenance.find(m => makeKey(m.dieId, m.revision, m.side) === k) || null;
+}
 function status(d){
   if(d.active === 'Inactive') return 'Inactive';
+  const latest = latestMaintenance(d);
+  if(latest && latest.disposition === 'Under Repair') return 'Under Repair';
   if(d.active === 'Under maintenance') return 'Under Maintenance';
   let p = percent(d), c = Number(d.crit||db.settings.crit), w = Number(d.warn||db.settings.warn);
   return p >= c ? 'Critical' : p >= w ? 'Warning' : 'Normal';
 }
 
 function badge(s){
-  let c = s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':'inactive';
+  let c = s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':s==='Under Repair'?'repair':'inactive';
   return `<span class="status ${c}">${esc(s)}</span>`;
 }
 
@@ -188,6 +197,45 @@ function showTab(tab){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function handleTabClick(tab){
+  if(tab === 'settings' && !settingsUnlocked){
+    $('modalHost').innerHTML = `
+      <div class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal" style="max-width:400px;">
+          <h2 style="margin-bottom:8px">🔐 Enter Password</h2>
+          <p style="margin-bottom:12px;font-size:13px;">Settings &amp; Backup is password protected.</p>
+          <div class="field" style="margin-bottom:12px">
+            <label>Password</label>
+            <input type="password" id="settingsPwdInput" placeholder="Enter password" autofocus onkeydown="if(event.key==='Enter') verifySettingsPassword()">
+          </div>
+          <div class="modal-actions">
+            <button class="btn secondary" onclick="$('modalHost').innerHTML=''">Cancel</button>
+            <button class="btn" onclick="verifySettingsPassword()">Unlock</button>
+          </div>
+        </div>
+      </div>
+    `;
+    setTimeout(() => { if($('settingsPwdInput')) $('settingsPwdInput').focus(); }, 50);
+    return;
+  }
+  showTab(tab);
+}
+
+function verifySettingsPassword(){
+  let pwd = $('settingsPwdInput')?.value || '';
+  if(pwd === SETTINGS_PASSWORD){
+    settingsUnlocked = true;
+    $('modalHost').innerHTML = '';
+    showTab('settings');
+  } else {
+    alert('Incorrect password. Access denied.');
+    if($('settingsPwdInput')) {
+      $('settingsPwdInput').value = '';
+      $('settingsPwdInput').focus();
+    }
+  }
+}
+
 function renderAll(){
   renderDashboard();
   renderDies();
@@ -198,19 +246,21 @@ function renderAll(){
 }
 
 function renderAlerts(){
-  let critical = db.dies.filter(d => status(d)==='Critical' && d.active==='Active');
-  let warning = db.dies.filter(d => status(d)==='Warning' && d.active==='Active');
+  // Dies with a latest Under Repair maintenance disposition are excluded from warnings/popups.
+  let eligible = db.dies.filter(d => d.active==='Active' && status(d)!=='Under Repair');
+  let critical = eligible.filter(d => status(d)==='Critical');
+  let warning = eligible.filter(d => status(d)==='Warning');
+  const coloredDie = (d, i, detail) => `<span class="alert-die c${(i%8)+1}">${esc(d.id)} (Rev ${esc(d.revision||'N/A')}, Side ${esc(d.size||'A')} — ${detail})</span>`;
   let html = '';
-  if(critical.length) html += `<div class="alert red"><strong>⚠ Critical die-life alert:</strong> ${critical.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(life(d))+' / '+num(d.life)+' m)').join('; ')}. Review before continuing production.</div>`;
-  if(warning.length) html += `<div class="alert"><strong>⚠ Plan action:</strong> ${warning.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(100-percent(d))+'% life remaining)').join('; ')}.</div>`;
+  if(critical.length) html += `<div class="alert red"><strong>⚠ Critical die-life alert:</strong> ${critical.map((d,i)=>coloredDie(d,i,num(life(d))+' / '+num(d.life)+' m')).join('; ')}. Review before continuing production.</div>`;
+  if(warning.length) html += `<div class="alert"><strong>⚠ Plan action:</strong> ${warning.map((d,i)=>coloredDie(d,i,num(100-percent(d))+'% life remaining')).join('; ')}.</div>`;
   $('alerts').innerHTML = html;
-
   if(critical.length && db.settings.popup!=='off'){
     let newCritical = critical.filter(d=>!popupSeen.has(getDieKey(d)));
     if(db.settings.popup==='always' || newCritical.length){
       let list = db.settings.popup==='always' ? critical : newCritical;
       list.forEach(d=>popupSeen.add(getDieKey(d)));
-      $('modalHost').innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><h2 style="color:#b42318">⚠ Die life alert</h2><p>One or more dies have reached their critical threshold.</p><div>${list.map(d=>`<p><strong>${esc(d.id)} (Rev: ${esc(d.revision||'—')}, Side ${esc(d.size||'A')}) — ${esc(d.profile)}</strong><br>${num(life(d))} m accumulated of ${num(d.life)} m approved (${num(percent(d))}%).</p>`).join('')}</div><div class="modal-actions"><button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('dies')">Review die master</button><button class="btn" onclick="$('modalHost').innerHTML=''">Acknowledge</button></div></div></div>`;
+      $('modalHost').innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><h2 style="color:#b42318">⚠ Die life alert</h2><p>One or more dies have reached their critical threshold.</p><div>${list.map((d,i)=>`<p><strong class="alert-die c${(i%8)+1}">${esc(d.id)} (Rev: ${esc(d.revision||'—')}, Side ${esc(d.size||'A')}) — ${esc(d.profile)}</strong><br>${num(life(d))} m accumulated of ${num(d.life)} m approved (${num(percent(d))}%).</p>`).join('')}</div><div class="modal-actions"><button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('dies')">Review die master</button><button class="btn" onclick="$('modalHost').innerHTML=''">Acknowledge</button></div></div></div>`;
     }
   }
 }
@@ -265,7 +315,8 @@ function renderDashboard(){
   $('metrics').innerHTML = [['Active dies',active.length,'Not marked inactive'],['Warning',warn,'At configured warning threshold'],['Critical',crit,'Inspect / review before use'],['Cumulative metres',num(totalLife),'Across active dies']].map((m,i)=>`<div class="card"><div class="metric-label">${m[0]}</div><div class="metric" style="color:${i===1&&warn?'#b96b00':i===2&&crit?'#c62828':'#172033'}">${m[1]}</div><div class="sub">${m[2]}</div></div>`).join('');
   
   let q = ($('searchDie')?.value||'').toLowerCase(), f = $('statusFilter')?.value||'all';
-  let rows = db.dies.filter(d=>(d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q) && (f==='all'||status(d)===f)).sort((a,b)=>percent(b)-percent(a));
+  // Number-wise sorting (natural sort on ID)
+  let rows = db.dies.filter(d=>(d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q) && (f==='all'||status(d)===f)).sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
   
   $('dieGrid').innerHTML = rows.length ? rows.map(d=>`
     <div class="die-card" onclick="openDieModal('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">
@@ -279,7 +330,8 @@ function renderDashboard(){
 }
 
 function renderDies(){
-  $('masterTable').innerHTML = db.dies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${db.dies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maintenance</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered. Use the form above to add your first die.</div>';
+  let sortedDies = [...db.dies].sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
+  $('masterTable').innerHTML = sortedDies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${sortedDies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maintenance</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered. Use the form above to add your first die.</div>';
 }
 
 function resetDieForm(){
@@ -359,7 +411,7 @@ $('dieForm').addEventListener('submit', e => {
 
 function populateDieIdSelects(){
   let activeDies = db.dies.filter(d=>d.active!=='Inactive');
-  let uniqueDieIds = [...new Set(activeDies.map(d=>d.id))].sort();
+  let uniqueDieIds = [...new Set(activeDies.map(d=>d.id))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
 
   for(let id of ['pDieId','mDieId']){
     let el = $(id), prev = el.value;
@@ -499,7 +551,8 @@ $('prodForm').addEventListener('submit', e => {
 
 function renderProduction(){
   let q = ($('prodSearch')?.value||'').toLowerCase();
-  let rows = db.production.filter(p=>(p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q));
+  let dateFilter = $('prodDateFilter')?.value || '';
+  let rows = db.production.filter(p=>(!dateFilter || p.date===dateFilter) && (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q));
   $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Operator</th><th>Remarks</th><th>Action</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
 }
 
@@ -534,6 +587,10 @@ $('maintForm').addEventListener('submit', e => {
     notes: $('mNotes').value.trim()
   };
   db.maintenance.unshift(m);
+  // Mirror repair state in Die Master; latest maintenance record determines displayed status.
+  const matchingDie = db.dies.find(d => getDieKey(d) === makeKey(m.dieId, m.revision, m.side));
+  if(matchingDie && m.disposition === 'Under Repair') matchingDie.active = 'Under maintenance';
+  else if(matchingDie && m.disposition === 'Ready for use' && matchingDie.active === 'Under maintenance') matchingDie.active = 'Active';
   resetMaintForm();
   save();
   alert('Maintenance record saved.');
@@ -618,18 +675,18 @@ function loadDemo(){
   if(confirm('Load demo data? This will overwrite existing records.')){
     db = {
       dies: [
-        {id:'DIE-101', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:80, crit:100, base:2000, active:'Active', notes:'Main production die'},
-        {id:'DIE-102', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:80, crit:100, base:12500, active:'Active', notes:'Close to rechroming threshold'},
-        {id:'DIE-103', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:80, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
+        {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
+        {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
+        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
       ],
       production: [
-        {id:'PROD-1', date:today(), dieId:'DIE-101', revision:'Rev 01', side:'A', machine:'P-01', shift:'1st', length:4500, operator:'Ramesh', remarks:'Smooth run'},
-        {id:'PROD-2', date:today(), dieId:'DIE-102', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, operator:'Suresh', remarks:'Minor chatter observed'}
+        {id:'PROD-1', date:today(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'P-01', shift:'1st', length:4500, operator:'Ramesh', remarks:'Smooth run'},
+        {id:'PROD-2', date:today(), dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, operator:'Suresh', remarks:'Minor chatter observed'}
       ],
       maintenance: [
-        {id:'MAINT-1', date:today(), dieId:'DIE-103', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
+        {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
       ],
-      settings: {warn:80, crit:100, popup:'once'}
+      settings: {warn:95, crit:100, popup:'once'}
     };
     save();
     alert('Demo data loaded.');
@@ -638,7 +695,7 @@ function loadDemo(){
 
 function clearAll(){
   if(confirm('Are you sure you want to clear all data?')){
-    db = {dies:[], production:[], maintenance:[], settings:{warn:80, crit:100, popup:'once'}};
+    db = {dies:[], production:[], maintenance:[], settings:{warn:95, crit:100, popup:'once'}};
     save();
     alert('All data cleared.');
   }
@@ -649,3 +706,5 @@ loadFirebaseData();
 </script>
 </body>
 </html>
+
+```
