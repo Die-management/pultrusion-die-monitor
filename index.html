@@ -63,7 +63,6 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
   </div>
   <div id="dieGrid" class="die-grid"></div>
 </div>
-
 </section>
 
 <!-- DIE MASTER TAB -->
@@ -98,8 +97,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <section id="tab-settings" class="hidden">
 <div class="panel"><div class="panel-head"><h2>Alert settings</h2></div><div class="panel-body"><div class="form-grid">
 <div class="field"><label>Default warning threshold (%)</label><input id="sWarn" type="number" min="1" max="100" value="80"></div><div class="field"><label>Default critical threshold (%)</label><input id="sCrit" type="number" min="1" max="200" value="100"></div><div class="field"><label>Popup behaviour</label><select id="sPopup"><option value="once">Show once per page session per die</option><option value="always">Show whenever critical dies exist</option><option value="off">Dashboard banner only</option></select></div>
-</div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Data is saved in local browser storage. Download regular backups. For multi-user live use, deploy with a shared database.</p></div></div>
-<div class="panel"><div class="panel-head"><h2>Demo data</h2></div><div class="panel-body"><p>Load sample dies and production to explore the dashboard. This will replace current data in this browser.</p><button class="btn" onclick="loadDemo()">Load / reset to demo data</button> <button class="btn danger" onclick="clearAll()">Clear all saved data</button></div></div>
+</div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Data is saved in local browser storage &amp; Firebase. Download regular backups.</p></div></div>
+<div class="panel"><div class="panel-head"><h2>Demo data</h2></div><div class="panel-body"><p>Load sample dies and production to explore the dashboard. This will replace current data.</p><button class="btn" onclick="loadDemo()">Load / reset to demo data</button> <button class="btn danger" onclick="clearAll()">Clear all saved data</button></div></div>
 </section>
 
 <div class="footer">Prototype dashboard • Sample values are illustrative • Validate approved die-life limits with engineering / tool-room before production use.</div>
@@ -116,92 +115,67 @@ const firebaseConfig = {
   appId: "1:230042215882:web:445bd65bb01bb2a3aa9b33"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const dbCloud = firebase.firestore();
 
-let db={dies:[],production:[],maintenance:[],settings:{warn:80,crit:100,popup:'once'}};
-let popupSeen=new Set();
+let db = {dies:[], production:[], maintenance:[], settings:{warn:80, crit:100, popup:'once'}};
+let popupSeen = new Set();
 
-const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
-const makeKey=(id,rev,side)=>(id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().slice(0,10);
+const makeKey = (id, rev, side) => (id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
 
-// 2. 👇 REPLACE YOUR OLD load() FUNCTION WITH THIS CLOUD VERSION
-function load(){
+function loadFirebaseData(){
   dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
-    if (doc.exists) {
+    if(doc.exists){
       let x = doc.data();
-      if(x && Array.isArray(x.dies)) {
+      if(x && Array.isArray(x.dies)){
         db = {...db, ...x, settings: {...db.settings, ...(x.settings || {})}};
         renderAll();
       }
     } else {
-      save(); // Initialize if empty
+      saveCloud();
     }
   }, err => {
     console.error("Firestore sync error:", err);
   });
 }
 
-// 3. 👇 REPLACE YOUR OLD save() FUNCTION WITH THIS CLOUD VERSION
-function save(){
+function saveCloud(){
   dbCloud.collection('monitorData').doc('mainState').set(db)
-    .then(() => {
-      renderAll();
-    })
-    .catch(err => {
-      alert("Error saving data to cloud: " + err.message);
-    });
-}
-const KEY='pultrusionDieLifeMonitor_v2';
-let db={dies:[],production:[],maintenance:[],settings:{warn:80,crit:100,popup:'once'}};
-let popupSeen=new Set();
-
-const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
-const makeKey=(id,rev,side)=>(id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
-
-function load(){
-  try{
-    const x=JSON.parse(localStorage.getItem(KEY));
-    if(x&&Array.isArray(x.dies)) {
-      db={...db,...x,settings:{...db.settings,...x.settings}};
-    }
-  }catch(e){}
+    .then(() => { renderAll(); })
+    .catch(err => { alert("Error saving data to cloud: " + err.message); });
 }
 
 function save(){
-  localStorage.setItem(KEY,JSON.stringify(db));
-  renderAll();
+  saveCloud();
 }
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function num(n){return Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
-
 function getDieKey(d){ return makeKey(d.id, d.revision, d.size); }
 
 function life(d){
-  const k=getDieKey(d);
-  return Number(d.base||0)+db.production.filter(p=>makeKey(p.dieId, p.revision, p.side)===k).reduce((s,p)=>s+Number(p.length||0),0);
+  const k = getDieKey(d);
+  return Number(d.base||0) + db.production.filter(p => makeKey(p.dieId, p.revision, p.side) === k).reduce((s,p)=>s+Number(p.length||0),0);
 }
 
-function percent(d){return d.life>0?life(d)/Number(d.life)*100:0}
+function percent(d){return d.life > 0 ? life(d)/Number(d.life)*100 : 0}
 
 function status(d){
-  if(d.active==='Inactive')return'Inactive';
-  if(d.active==='Under maintenance')return'Under Maintenance';
-  let p=percent(d),c=Number(d.crit||db.settings.crit),w=Number(d.warn||db.settings.warn);
-  return p>=c?'Critical':p>=w?'Warning':'Normal';
+  if(d.active === 'Inactive') return 'Inactive';
+  if(d.active === 'Under maintenance') return 'Under Maintenance';
+  let p = percent(d), c = Number(d.crit||db.settings.crit), w = Number(d.warn||db.settings.warn);
+  return p >= c ? 'Critical' : p >= w ? 'Warning' : 'Normal';
 }
 
 function badge(s){
-  let c=s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':'inactive';
+  let c = s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':'inactive';
   return `<span class="status ${c}">${esc(s)}</span>`;
 }
 
 function bar(d){
-  let p=percent(d),color=p>=Number(d.crit||db.settings.crit)?'#c62828':p>=Number(d.warn||db.settings.warn)?'#d99000':'#16834a';
+  let p = percent(d), color = p>=Number(d.crit||db.settings.crit)?'#c62828':p>=Number(d.warn||db.settings.warn)?'#d99000':'#16834a';
   return `<div class="bar"><span style="width:${Math.min(100,p)}%;background:${color}"></span></div><small class="sub">${num(p)}%</small>`;
 }
 
@@ -224,27 +198,26 @@ function renderAll(){
 }
 
 function renderAlerts(){
-  // Exclude dies marked 'Under maintenance' or 'Inactive' from Warning and Critical alerts
-  let critical=db.dies.filter(d=>status(d)==='Critical'&&d.active==='Active');
-  let warning=db.dies.filter(d=>status(d)==='Warning'&&d.active==='Active');
-  let html='';
-  if(critical.length) html+=`<div class="alert red"><strong>⚠ Critical die-life alert:</strong> ${critical.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(life(d))+' / '+num(d.life)+' m)').join('; ')}. Review before continuing production.</div>`;
-  if(warning.length) html+=`<div class="alert"><strong>⚠ Plan action:</strong> ${warning.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(100-percent(d))+'% life remaining)').join('; ')}.</div>`;
-  $('alerts').innerHTML=html;
+  let critical = db.dies.filter(d => status(d)==='Critical' && d.active==='Active');
+  let warning = db.dies.filter(d => status(d)==='Warning' && d.active==='Active');
+  let html = '';
+  if(critical.length) html += `<div class="alert red"><strong>⚠ Critical die-life alert:</strong> ${critical.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(life(d))+' / '+num(d.life)+' m)').join('; ')}. Review before continuing production.</div>`;
+  if(warning.length) html += `<div class="alert"><strong>⚠ Plan action:</strong> ${warning.map(d=>esc(d.id)+' ('+esc(d.revision||'N/A')+' Side '+esc(d.size||'A')+' - '+num(100-percent(d))+'% life remaining)').join('; ')}.</div>`;
+  $('alerts').innerHTML = html;
 
-  if(critical.length&&db.settings.popup!=='off'){
-    let newCritical=critical.filter(d=>!popupSeen.has(getDieKey(d)));
-    if(db.settings.popup==='always'||newCritical.length){
-      let list=db.settings.popup==='always'?critical:newCritical;
+  if(critical.length && db.settings.popup!=='off'){
+    let newCritical = critical.filter(d=>!popupSeen.has(getDieKey(d)));
+    if(db.settings.popup==='always' || newCritical.length){
+      let list = db.settings.popup==='always' ? critical : newCritical;
       list.forEach(d=>popupSeen.add(getDieKey(d)));
-      $('modalHost').innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><h2 style="color:#b42318">⚠ Die life alert</h2><p>One or more dies have reached their configured critical threshold. Follow your approved inspection and die-control procedure.</p><div>${list.map(d=>`<p><strong>${esc(d.id)} (Rev: ${esc(d.revision||'—')}, Side ${esc(d.size||'A')}) — ${esc(d.profile)}</strong><br>${num(life(d))} m accumulated of ${num(d.life)} m approved (${num(percent(d))}%). Remaining: ${num(Math.max(0,Number(d.life)-life(d)))} m.</p>`).join('')}</div><div class="modal-actions"><button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('dies')">Review die master</button><button class="btn" onclick="$('modalHost').innerHTML=''">Acknowledge</button></div></div></div>`;
+      $('modalHost').innerHTML=`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><h2 style="color:#b42318">⚠ Die life alert</h2><p>One or more dies have reached their critical threshold.</p><div>${list.map(d=>`<p><strong>${esc(d.id)} (Rev: ${esc(d.revision||'—')}, Side ${esc(d.size||'A')}) — ${esc(d.profile)}</strong><br>${num(life(d))} m accumulated of ${num(d.life)} m approved (${num(percent(d))}%).</p>`).join('')}</div><div class="modal-actions"><button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('dies')">Review die master</button><button class="btn" onclick="$('modalHost').innerHTML=''">Acknowledge</button></div></div></div>`;
     }
   }
 }
 
 function openDieModal(id, rev, side){
-  let k=makeKey(id, rev, side);
-  let d=db.dies.find(x=>getDieKey(x)===k);
+  let k = makeKey(id, rev, side);
+  let d = db.dies.find(x=>getDieKey(x)===k);
   if(!d) return;
 
   let st = status(d);
@@ -288,13 +261,13 @@ function openDieModal(id, rev, side){
 }
 
 function renderDashboard(){
-  let active=db.dies.filter(d=>d.active!=='Inactive'),warn=active.filter(d=>status(d)==='Warning').length,crit=active.filter(d=>status(d)==='Critical').length,totalLife=active.reduce((s,d)=>s+life(d),0);
-  $('metrics').innerHTML=[['Active dies',active.length,'Not marked inactive'],['Warning',warn,'At configured warning threshold'],['Critical',crit,'Inspect / review before use'],['Cumulative metres',num(totalLife),'Across active dies']].map((m,i)=>`<div class="card"><div class="metric-label">${m[0]}</div><div class="metric" style="color:${i===1&&warn?'#b96b00':i===2&&crit?'#c62828':'#172033'}">${m[1]}</div><div class="sub">${m[2]}</div></div>`).join('');
+  let active = db.dies.filter(d=>d.active!=='Inactive'), warn = active.filter(d=>status(d)==='Warning').length, crit = active.filter(d=>status(d)==='Critical').length, totalLife = active.reduce((s,d)=>s+life(d),0);
+  $('metrics').innerHTML = [['Active dies',active.length,'Not marked inactive'],['Warning',warn,'At configured warning threshold'],['Critical',crit,'Inspect / review before use'],['Cumulative metres',num(totalLife),'Across active dies']].map((m,i)=>`<div class="card"><div class="metric-label">${m[0]}</div><div class="metric" style="color:${i===1&&warn?'#b96b00':i===2&&crit?'#c62828':'#172033'}">${m[1]}</div><div class="sub">${m[2]}</div></div>`).join('');
   
-  let q=($('searchDie')?.value||'').toLowerCase(),f=$('statusFilter')?.value||'all';
-  let rows=db.dies.filter(d=>(d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q)&&(f==='all'||status(d)===f)).sort((a,b)=>percent(b)-percent(a));
+  let q = ($('searchDie')?.value||'').toLowerCase(), f = $('statusFilter')?.value||'all';
+  let rows = db.dies.filter(d=>(d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q) && (f==='all'||status(d)===f)).sort((a,b)=>percent(b)-percent(a));
   
-  $('dieGrid').innerHTML=rows.length?rows.map(d=>`
+  $('dieGrid').innerHTML = rows.length ? rows.map(d=>`
     <div class="die-card" onclick="openDieModal('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">
       <div class="die-card-header">
         <span class="die-card-id">${esc(d.id)} (Side ${esc(d.size||'A')})</span>
@@ -302,80 +275,79 @@ function renderDashboard(){
       </div>
       <div>${badge(status(d))}</div>
     </div>
-  `).join(''):'<div class="empty" style="grid-column:1/-1">No dies match. Add dies in Die master or change the filter.</div>';
+  `).join('') : '<div class="empty" style="grid-column:1/-1">No dies match. Add dies in Die master or change the filter.</div>';
 }
 
 function renderDies(){
-  $('masterTable').innerHTML=db.dies.length?`<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${db.dies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maintenance</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No dies registered. Use the form above to add your first die.</div>';
+  $('masterTable').innerHTML = db.dies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${db.dies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maintenance</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered. Use the form above to add your first die.</div>';
 }
 
 function resetDieForm(){
   $('dieForm').reset();
-  $('editDieKey').value='';
-  $('dWarn').value=db.settings.warn;
-  $('dCrit').value=db.settings.crit;
-  $('dBase').value=0;
-  $('dId').disabled=false;
-  $('dRevision').disabled=false;
-  $('dSize').disabled=false;
-  $('dieFormTitle').textContent='Add die to master';
+  $('editDieKey').value = '';
+  $('dWarn').value = db.settings.warn;
+  $('dCrit').value = db.settings.crit;
+  $('dBase').value = 0;
+  $('dId').disabled = false;
+  $('dRevision').disabled = false;
+  $('dSize').disabled = false;
+  $('dieFormTitle').textContent = 'Add die to master';
 }
 
 function editDie(id, rev, side){
-  let k=makeKey(id, rev, side);
-  let d=db.dies.find(x=>getDieKey(x)===k);
-  if(!d)return;
+  let k = makeKey(id, rev, side);
+  let d = db.dies.find(x=>getDieKey(x)===k);
+  if(!d) return;
   showTab('dies');
-  $('editDieKey').value=k;
-  $('dId').value=d.id;
-  $('dId').disabled=true;
-  $('dRevision').value=d.revision||'';
-  $('dRevision').disabled=true;
-  $('dSize').value=d.size||'A';
-  $('dSize').disabled=true;
-  $('dProfile').value=d.profile;
-  $('dLife').value=d.life;
-  $('dWarn').value=d.warn||db.settings.warn;
-  $('dCrit').value=d.crit||db.settings.crit;
-  $('dBase').value=d.base||0;
-  $('dActive').value=d.active||'Active';
-  $('dNotes').value=d.notes||'';
-  $('dieFormTitle').textContent='Edit die: '+d.id+' ('+(d.revision||'No Rev')+') - Side '+(d.size||'A');
+  $('editDieKey').value = k;
+  $('dId').value = d.id;
+  $('dId').disabled = true;
+  $('dRevision').value = d.revision||'';
+  $('dRevision').disabled = true;
+  $('dSize').value = d.size||'A';
+  $('dSize').disabled = true;
+  $('dProfile').value = d.profile;
+  $('dLife').value = d.life;
+  $('dWarn').value = d.warn||db.settings.warn;
+  $('dCrit').value = d.crit||db.settings.crit;
+  $('dBase').value = d.base||0;
+  $('dActive').value = d.active||'Active';
+  $('dNotes').value = d.notes||'';
+  $('dieFormTitle').textContent = 'Edit die: '+d.id+' ('+(d.revision||'No Rev')+') - Side '+(d.size||'A');
 }
 
-$('dieForm').addEventListener('submit',e=>{
+$('dieForm').addEventListener('submit', e => {
   e.preventDefault();
-  let oldKey=$('editDieKey').value;
-  let id=$('dId').value.trim();
-  let revision=$('dRevision').value.trim();
-  let size=$('dSize').value;
-  let k=makeKey(id, revision, size);
+  let oldKey = $('editDieKey').value;
+  let id = $('dId').value.trim();
+  let revision = $('dRevision').value.trim();
+  let size = $('dSize').value;
+  let k = makeKey(id, revision, size);
 
   if(!oldKey && db.dies.some(d=>getDieKey(d)===k)){
     alert('A Die with this ID, Revision, and Side combination already exists.');
     return;
   }
 
-  let d={
-    id,
-    revision,
-    profile:$('dProfile').value.trim(),
-    size:size,
-    life:Number($('dLife').value),
-    warn:Number($('dWarn').value),
-    crit:Number($('dCrit').value),
-    base:Number($('dBase').value),
-    active:$('dActive').value,
-    notes:$('dNotes').value.trim()
+  let d = {
+    id, revision,
+    profile: $('dProfile').value.trim(),
+    size: size,
+    life: Number($('dLife').value),
+    warn: Number($('dWarn').value),
+    crit: Number($('dCrit').value),
+    base: Number($('dBase').value),
+    active: $('dActive').value,
+    notes: $('dNotes').value.trim()
   };
 
-  if(d.warn>=d.crit){
+  if(d.warn >= d.crit){
     alert('Warning threshold must be lower than critical threshold.');
     return;
   }
 
   if(oldKey){
-    db.dies=db.dies.map(x=>getDieKey(x)===oldKey?d:x);
+    db.dies = db.dies.map(x=>getDieKey(x)===oldKey?d:x);
   } else {
     db.dies.push(d);
   }
@@ -386,395 +358,294 @@ $('dieForm').addEventListener('submit',e=>{
 });
 
 function populateDieIdSelects(){
-  let activeDies=db.dies.filter(d=>d.active!=='Inactive');
-  let uniqueDieIds=[...new Set(activeDies.map(d=>d.id))].sort();
+  let activeDies = db.dies.filter(d=>d.active!=='Inactive');
+  let uniqueDieIds = [...new Set(activeDies.map(d=>d.id))].sort();
 
   for(let id of ['pDieId','mDieId']){
-    let el=$(id), prev=el.value;
-    el.innerHTML='<option value="">Select Die ID…</option>'+uniqueDieIds.map(dId=>`<option value="${esc(dId)}">${esc(dId)}</option>`).join('');
-    if(uniqueDieIds.includes(prev)){
-      el.value=prev;
-    } else {
-      el.value='';
-    }
+    let el = $(id), prev = el.value;
+    el.innerHTML = '<option value="">Select Die ID…</option>' + uniqueDieIds.map(dId=>`<option value="${esc(dId)}">${esc(dId)}</option>`).join('');
+    if(uniqueDieIds.includes(prev)) el.value = prev;
+    else el.value = '';
   }
 }
 
 function onProductionDieIdChange(){
-  let selectedId=$('pDieId').value;
-  let revSelect=$('pRevision');
-  let sideSelect=$('pSide');
+  let selectedId = $('pDieId').value;
+  let revSelect = $('pRevision');
+  let sideSelect = $('pSide');
   
   if(!selectedId){
-    revSelect.innerHTML='<option value="">Select Revision…</option>';
-    revSelect.disabled=true;
-    sideSelect.innerHTML='<option value="">Select Side…</option>';
-    sideSelect.disabled=true;
+    revSelect.innerHTML = '<option value="">Select Revision…</option>';
+    revSelect.disabled = true;
+    sideSelect.innerHTML = '<option value="">Select Side…</option>';
+    sideSelect.disabled = true;
     return;
   }
 
-  let matchingRevs=[...new Set(db.dies.filter(d=>d.id===selectedId && d.active!=='Inactive').map(d=>d.revision))];
-  revSelect.innerHTML='<option value="">Select Revision…</option>'+matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
-  revSelect.disabled=false;
-  sideSelect.innerHTML='<option value="">Select Side…</option>';
-  sideSelect.disabled=true;
+  let matchingRevs = [...new Set(db.dies.filter(d=>d.id===selectedId && d.active!=='Inactive').map(d=>d.revision))];
+  revSelect.innerHTML = '<option value="">Select Revision…</option>' + matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  revSelect.disabled = false;
+  sideSelect.innerHTML = '<option value="">Select Side…</option>';
+  sideSelect.disabled = true;
 
   if(matchingRevs.length===1){
-    revSelect.value=matchingRevs[0];
+    revSelect.value = matchingRevs[0];
     onProductionRevisionChange();
   }
 }
 
 function onProductionRevisionChange(){
-  let selectedId=$('pDieId').value;
-  let selectedRev=$('pRevision').value;
-  let sideSelect=$('pSide');
+  let selectedId = $('pDieId').value;
+  let selectedRev = $('pRevision').value;
+  let sideSelect = $('pSide');
 
   if(!selectedRev){
-    sideSelect.innerHTML='<option value="">Select Side…</option>';
-    sideSelect.disabled=true;
+    sideSelect.innerHTML = '<option value="">Select Side…</option>';
+    sideSelect.disabled = true;
     return;
   }
 
-  let matchingSides=db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev && d.active!=='Inactive').map(d=>d.size||'A');
-  sideSelect.innerHTML='<option value="">Select Side…</option>'+matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
-  sideSelect.disabled=false;
+  let matchingSides = db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev && d.active!=='Inactive').map(d=>d.size||'A');
+  sideSelect.innerHTML = '<option value="">Select Side…</option>' + matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
+  sideSelect.disabled = false;
 
   if(matchingSides.length===1){
-    sideSelect.value=matchingSides[0];
+    sideSelect.value = matchingSides[0];
   }
 }
 
 function onMaintDieIdChange(){
-  let selectedId=$('mDieId').value;
-  let revSelect=$('mRevision');
-  let sideSelect=$('mSide');
+  let selectedId = $('mDieId').value;
+  let revSelect = $('mRevision');
+  let sideSelect = $('mSide');
   
   if(!selectedId){
-    revSelect.innerHTML='<option value="">Select Revision…</option>';
-    revSelect.disabled=true;
-    sideSelect.innerHTML='<option value="">Select Side…</option>';
-    sideSelect.disabled=true;
+    revSelect.innerHTML = '<option value="">Select Revision…</option>';
+    revSelect.disabled = true;
+    sideSelect.innerHTML = '<option value="">Select Side…</option>';
+    sideSelect.disabled = true;
     return;
   }
 
-  let matchingRevs=[...new Set(db.dies.filter(d=>d.id===selectedId && d.active!=='Inactive').map(d=>d.revision))];
-  revSelect.innerHTML='<option value="">Select Revision…</option>'+matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
-  revSelect.disabled=false;
-  sideSelect.innerHTML='<option value="">Select Side…</option>';
-  sideSelect.disabled=true;
+  let matchingRevs = [...new Set(db.dies.filter(d=>d.id===selectedId && d.active!=='Inactive').map(d=>d.revision))];
+  revSelect.innerHTML = '<option value="">Select Revision…</option>' + matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  revSelect.disabled = false;
+  sideSelect.innerHTML = '<option value="">Select Side…</option>';
+  sideSelect.disabled = true;
 
   if(matchingRevs.length===1){
-    revSelect.value=matchingRevs[0];
+    revSelect.value = matchingRevs[0];
     onMaintRevisionChange();
   }
 }
 
 function onMaintRevisionChange(){
-  let selectedId=$('mDieId').value;
-  let selectedRev=$('mRevision').value;
-  let sideSelect=$('mSide');
+  let selectedId = $('mDieId').value;
+  let selectedRev = $('mRevision').value;
+  let sideSelect = $('mSide');
 
   if(!selectedRev){
-    sideSelect.innerHTML='<option value="">Select Side…</option>';
-    sideSelect.disabled=true;
+    sideSelect.innerHTML = '<option value="">Select Side…</option>';
+    sideSelect.disabled = true;
     return;
   }
 
-  let matchingSides=db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev && d.active!=='Inactive').map(d=>d.size||'A');
-  sideSelect.innerHTML='<option value="">Select Side…</option>'+matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
-  sideSelect.disabled=false;
+  let matchingSides = db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev && d.active!=='Inactive').map(d=>d.size||'A');
+  sideSelect.innerHTML = '<option value="">Select Side…</option>' + matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
+  sideSelect.disabled = false;
 
   if(matchingSides.length===1){
-    sideSelect.value=matchingSides[0];
+    sideSelect.value = matchingSides[0];
   }
 }
 
-function prefillMaint(dieId, rev, side){
-  $('mDieId').value=dieId;
+function prefillMaint(id, rev, side){
+  $('mDieId').value = id;
   onMaintDieIdChange();
-  $('mRevision').value=rev;
+  $('mRevision').value = rev;
   onMaintRevisionChange();
-  $('mSide').value=side||'A';
-}
-
-function setToday(){
-  $('pDate').value=today();
-  $('mDate').value=today();
+  $('mSide').value = side||'A';
+  $('mDate').value = today();
 }
 
 function resetProdForm(){
   $('prodForm').reset();
-  setToday();
-  $('pRevision').innerHTML='<option value="">Select Revision…</option>';
-  $('pRevision').disabled=true;
-  $('pSide').innerHTML='<option value="">Select Side…</option>';
-  $('pSide').disabled=true;
+  $('pDate').value = today();
+  $('pRevision').innerHTML = '<option value="">Select Revision…</option>';
+  $('pRevision').disabled = true;
+  $('pSide').innerHTML = '<option value="">Select Side…</option>';
+  $('pSide').disabled = true;
 }
 
-function resetMaintForm(){
-  $('maintForm').reset();
-  setToday();
-  $('mRevision').innerHTML='<option value="">Select Revision…</option>';
-  $('mRevision').disabled=true;
-  $('mSide').innerHTML='<option value="">Select Side…</option>';
-  $('mSide').disabled=true;
-}
-
-$('prodForm').addEventListener('submit',e=>{
+$('prodForm').addEventListener('submit', e => {
   e.preventDefault();
-  let dieId=$('pDieId').value;
-  let revision=$('pRevision').value;
-  let side=$('pSide').value;
-  if(!dieId) return alert('Select a Die ID.');
-  if(!revision) return alert('Select a Die Revision.');
-  if(!side) return alert('Select a Die Side.');
-
-  let p={
-    id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),
-    date:$('pDate').value,
-    dieId:dieId,
-    revision:revision,
-    side:side,
-    machine:$('pMachine').value.trim(),
-    shift:$('pShift').value,
-    length:Number($('pLength').value),
-    operator:$('pOperator').value.trim(),
-    remarks:$('pRemarks').value.trim(),
-    created:new Date().toISOString()
+  let p = {
+    id: 'PROD-' + Date.now(),
+    date: $('pDate').value,
+    dieId: $('pDieId').value,
+    revision: $('pRevision').value,
+    side: $('pSide').value,
+    machine: $('pMachine').value.trim(),
+    shift: $('pShift').value,
+    length: Number($('pLength').value),
+    operator: $('pOperator').value.trim(),
+    remarks: $('pRemarks').value.trim()
   };
-
-  if(p.length<0) return alert('Length cannot be negative.');
-
-  db.production.push(p);
+  db.production.unshift(p);
   resetProdForm();
   save();
-  alert('Production entry saved; cumulative die life updated.');
-  showTab('production');
+  alert('Production entry saved.');
 });
 
 function renderProduction(){
-  let q=($('prodSearch')?.value||'').toLowerCase();
-  let arr=[...db.production].sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created)).filter(p=>(p.date+' '+p.dieId+' '+(p.revision||'')+' '+p.machine+' '+(p.side||'A')+' '+p.operator).toLowerCase().includes(q));
-  
-  $('productionTable').innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Die ID</th><th>Die Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Operator</th><th>Remarks</th><th>Action</th></tr></thead><tbody>${arr.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>${esc('Side '+(p.side||'A'))}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td>${num(p.length)}</td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn danger small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No production entries yet.</div>';
+  let q = ($('prodSearch')?.value||'').toLowerCase();
+  let rows = db.production.filter(p=>(p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q));
+  $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Operator</th><th>Remarks</th><th>Action</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
 }
 
 function deleteProduction(id){
-  if(confirm('Delete this production entry? Cumulative die life will decrease.')){
-    db.production=db.production.filter(p=>p.id!==id);
+  if(confirm('Delete this production entry?')){
+    db.production = db.production.filter(p=>p.id!==id);
     save();
   }
 }
 
-$('maintForm').addEventListener('submit',e=>{
+function resetMaintForm(){
+  $('maintForm').reset();
+  $('mDate').value = today();
+  $('mRevision').innerHTML = '<option value="">Select Revision…</option>';
+  $('mRevision').disabled = true;
+  $('mSide').innerHTML = '<option value="">Select Side…</option>';
+  $('mSide').disabled = true;
+}
+
+$('maintForm').addEventListener('submit', e => {
   e.preventDefault();
-  let dieId=$('mDieId').value;
-  let revision=$('mRevision').value;
-  let side=$('mSide').value;
-  let date=$('mDate').value;
-  let type=$('mType').value;
-
-  if(!dieId) return alert('Select a Die ID.');
-  if(!revision) return alert('Select a Die Revision.');
-  if(!side) return alert('Select a Die Side.');
-
-  // Check for duplicate maintenance entry
-  let isDuplicate = db.maintenance.some(m => 
-    m.date === date && 
-    m.dieId === dieId && 
-    m.revision === revision && 
-    (m.side || 'A') === side && 
-    m.type === type
-  );
-
-  if(isDuplicate){
-    alert('A maintenance record for this Die ID, Revision, Side, Activity, and Date already exists.');
-    return;
-  }
-
-  let m={
-    id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),
-    date:date,
-    dieId:dieId,
-    revision:revision,
-    side:side,
-    type:type,
-    owner:$('mOwner').value.trim(),
-    cost:Number($('mCost').value||0),
-    disposition:$('mDisposition').value,
-    notes:$('mNotes').value.trim(),
-    created:new Date().toISOString()
+  let m = {
+    id: 'MAINT-' + Date.now(),
+    date: $('mDate').value,
+    dieId: $('mDieId').value,
+    revision: $('mRevision').value,
+    side: $('mSide').value,
+    type: $('mType').value,
+    owner: $('mOwner').value.trim(),
+    cost: $('mCost').value ? Number($('mCost').value) : 0,
+    disposition: $('mDisposition').value,
+    notes: $('mNotes').value.trim()
   };
-
-  db.maintenance.push(m);
-
-  let d=db.dies.find(x=>getDieKey(x)===makeKey(dieId, revision, side));
-  if(d&&['Under maintenance','Ready for use','Discarded'].includes(m.disposition)){
-    if(m.disposition==='Discarded') d.active='Inactive';
-    else if(m.disposition==='Under repair' || m.disposition==='Hold by QC') d.active='Under maintenance';
-    else d.active='Active';
-  }
-
+  db.maintenance.unshift(m);
   resetMaintForm();
   save();
-  alert('Maintenance history saved.');
+  alert('Maintenance record saved.');
 });
 
 function renderMaintenance(){
-  let arr=[...db.maintenance].sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
-  $('maintenanceTable').innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Die ID</th><th>Die Revision</th><th>Side</th><th>Activity</th><th>Disposition</th><th>Responsible / vendor</th><th>Cost</th><th>Findings / next action</th><th>Action</th></tr></thead><tbody>${arr.map(m=>`<tr><td>${esc(m.date)}</td><td><strong>${esc(m.dieId)}</strong></td><td>${esc(m.revision||'—')}</td><td>${esc('Side '+(m.side||'A'))}</td><td>${esc(m.type)}</td><td>${esc(m.disposition)}</td><td>${esc(m.owner||'—')}</td><td>${m.cost?('₹'+num(m.cost)):'—'}</td><td>${esc(m.notes)}</td><td><button class="btn danger small" onclick="deleteMaint('${m.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No maintenance records yet.</div>';
+  $('maintenanceTable').innerHTML = db.maintenance.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Activity</th><th>Vendor / Person</th><th>Cost</th><th>Disposition</th><th>Findings / Notes</th><th>Action</th></tr></thead><tbody>${db.maintenance.map(m=>`<tr><td>${esc(m.date)}</td><td><strong>${esc(m.dieId)}</strong></td><td>${esc(m.revision||'—')}</td><td>Side ${esc(m.side||'A')}</td><td><strong>${esc(m.type)}</strong></td><td>${esc(m.owner||'—')}</td><td>${m.cost? '₹'+num(m.cost):'—'}</td><td>${esc(m.disposition)}</td><td>${esc(m.notes)}</td><td><button class="btn secondary small" onclick="deleteMaintenance('${m.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No maintenance records found.</div>';
 }
 
-function deleteMaint(id){
+function deleteMaintenance(id){
   if(confirm('Delete this maintenance record?')){
-    db.maintenance=db.maintenance.filter(m=>m.id!==id);
+    db.maintenance = db.maintenance.filter(m=>m.id!==id);
     save();
   }
 }
 
 function saveSettings(){
-  let w=Number($('sWarn').value),c=Number($('sCrit').value);
-  if(w<=0||c<=w){alert('Critical threshold must be greater than warning threshold.');return}
-  db.settings={warn:w,crit:c,popup:$('sPopup').value};
+  db.settings.warn = Number($('sWarn').value);
+  db.settings.crit = Number($('sCrit').value);
+  db.settings.popup = $('sPopup').value;
   save();
-  alert('Settings saved. Die-specific thresholds override defaults.');
+  alert('Settings saved.');
 }
 
 function exportData(){
-  download('pultrusion-die-backup-'+today()+'.json',JSON.stringify(db,null,2),'application/json');
+  let blob = new Blob([JSON.stringify(db,null,2)], {type:'application/json'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = 'pultrusion_die_monitor_backup_' + today() + '.json';
+  a.click();
 }
 
-function downloadBackup(){exportData()}
+function downloadBackup(){ exportData(); }
 
-function download(name,content,type){
-  let a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));
-  a.href=url;a.download=name;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-function csv(rows){
-  return rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+function importBackup(e){
+  let file = e.target.files[0];
+  if(!file) return;
+  let reader = new FileReader();
+  reader.onload = evt => {
+    try{
+      let parsed = JSON.parse(evt.target.result);
+      if(parsed && Array.isArray(parsed.dies)){
+        db = parsed;
+        save();
+        alert('Data imported successfully.');
+      } else {
+        alert('Invalid backup file format.');
+      }
+    }catch(err){
+      alert('Error parsing JSON file.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 function exportCSV(){
-  let rows=[
-    ['Die ID','Die Revision','Profile','Die Side','Approved Life (m)','Base Life (m)','Production Since Baseline (m)','Cumulative Life (m)','Remaining Life (m)','Consumed (%)','Warning (%)','Critical (%)','Status','Die Status','Notes'],
-    ...db.dies.map(d=>[d.id,d.revision||'',d.profile,d.size||'A',d.life,d.base,life(d)-Number(d.base||0),life(d),Number(d.life)-life(d),percent(d),d.warn,d.crit,status(d),d.active,d.notes])
-  ];
-  download('die-life-report-'+today()+'.csv','\ufeff'+csv(rows),'text/csv;charset=utf-8');
+  let csv = 'Die ID,Revision,Side,Profile,Approved Life (m),Base Life (m),Running Life (m),Status\n';
+  db.dies.forEach(d=>{
+    csv += `"${d.id}","${d.revision||''}","Side ${d.size||'A'}","${d.profile}",${d.life},${d.base||0},${life(d)},"${status(d)}"\n`;
+  });
+  let blob = new Blob([csv], {type:'text/csv'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'die_master_report_' + today() + '.csv';
+  a.click();
 }
 
 function exportProductionCSV(){
-  let rows=[
-    ['Date','Die ID','Die Revision','Profile','Die Side','Machine','Shift','Length (m)','Operator','Remarks'],
-    ...db.production.map(p=>{
-      let d=db.dies.find(x=>getDieKey(x)===makeKey(p.dieId, p.revision, p.side));
-      return [p.date,p.dieId,p.revision||'',d?.profile||'',p.side||'A',p.machine,p.shift,p.length,p.operator,p.remarks];
-    })
-  ];
-  download('production-log-'+today()+'.csv','\ufeff'+csv(rows),'text/csv;charset=utf-8');
-}
-
-function importBackup(e){
-  let file=e.target.files[0];
-  if(!file)return;
-  let r=new FileReader();
-  r.onload=()=>{
-    try{
-      let x=JSON.parse(r.result);
-      if(!Array.isArray(x.dies)||!Array.isArray(x.production)||!Array.isArray(x.maintenance)) throw Error('Invalid backup format');
-      if(confirm('Replace all current dashboard data with this backup?')){
-        db=x;
-        db.settings={warn:80,crit:100,popup:'once',...(x.settings||{})};
-        save();
-        alert('Backup imported.');
-      }
-    }catch(err){
-      alert('Import failed: '+err.message);
-    }
-    e.target.value='';
-  };
-  r.readAsText(file);
+  let csv = 'Date,Die ID,Revision,Side,Machine,Shift,Length (m),Operator,Remarks\n';
+  db.production.forEach(p=>{
+    csv += `"${p.date}","${p.dieId}","${p.revision||''}","Side ${p.side||'A'}","${p.machine||''}","${p.shift}",${p.length},"${p.operator||''}","${p.remarks||''}"\n`;
+  });
+  let blob = new Blob([csv], {type:'text/csv'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'production_log_' + today() + '.csv';
+  a.click();
 }
 
 function loadDemo(){
-  if(!confirm('Replace current data with illustrative demo data? Download a backup first if needed.'))return;
-  db={
-    settings:{warn:80,crit:100,popup:'once'},
-    dies:[
-      {id:'DIE-001',revision:'Rev 01',profile:'FRP Profile A',size:'A',life:25000,base:0,warn:80,crit:100,active:'Active',notes:'Initial design - Side A'},
-      {id:'DIE-001',revision:'Rev 01',profile:'FRP Profile A',size:'B',life:25000,base:0,warn:80,crit:100,active:'Active',notes:'Initial design - Side B'},
-      {id:'DIE-001',revision:'Rev 02',profile:'FRP Profile A (Modified)',size:'A',life:30000,base:0,warn:80,crit:100,active:'Active',notes:'Hardened coating revision'},
-      {id:'DIE-002',revision:'Rev 00',profile:'FRP Profile B',size:'B',life:25000,base:0,warn:80,crit:100,active:'Active',notes:''},
-      {id:'DIE-003',revision:'Rev 02',profile:'Radome 350×200',size:'A',life:25000,base:0,warn:80,crit:100,active:'Active',notes:'Sample only'},
-      {id:'DIE-004',revision:'Rev 01',profile:'FRP Profile D',size:'B',life:20000,base:0,warn:80,crit:100,active:'Under maintenance',notes:''}
-    ],
-    production:[],
-    maintenance:[]
-  };
-
-  let samples=[
-    ['DIE-001','Rev 01','A',18000],
-    ['DIE-001','Rev 02','A',5000],
-    ['DIE-002','Rev 00','B',23000],
-    ['DIE-003','Rev 02','A',26000],
-    ['DIE-004','Rev 01','B',4000]
-  ];
-
-  samples.forEach((x,i)=>db.production.push({
-    id:'demo'+i,
-    date:today(),
-    dieId:x[0],
-    revision:x[1],
-    side:x[2],
-    machine:'L'+(i+1),
-    shift:'1st',
-    length:x[3],
-    operator:'Demo',
-    remarks:'Illustrative sample',
-    created:new Date().toISOString()
-  }));
-
-  db.maintenance.push({
-    id:'mdemo',
-    date:today(),
-    dieId:'DIE-004',
-    revision:'Rev 01',
-    side:'B',
-    type:'Inspection',
-    owner:'Tool room',
-    cost:0,
-    disposition:'Under repair',
-    notes:'Sample history entry',
-    created:new Date().toISOString()
-  });
-
-  popupSeen.clear();
-  save();
-  showTab('dashboard');
-}
-
-function clearAll(){
-  if(confirm('Permanently clear all dashboard data saved in this browser? Export a backup first if needed.')){
-    db={dies:[],production:[],maintenance:[],settings:{warn:80,crit:100,popup:'once'}};
-    popupSeen.clear();
+  if(confirm('Load demo data? This will overwrite existing records.')){
+    db = {
+      dies: [
+        {id:'DIE-101', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:80, crit:100, base:2000, active:'Active', notes:'Main production die'},
+        {id:'DIE-102', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:80, crit:100, base:12500, active:'Active', notes:'Close to rechroming threshold'},
+        {id:'DIE-103', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:80, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
+      ],
+      production: [
+        {id:'PROD-1', date:today(), dieId:'DIE-101', revision:'Rev 01', side:'A', machine:'P-01', shift:'1st', length:4500, operator:'Ramesh', remarks:'Smooth run'},
+        {id:'PROD-2', date:today(), dieId:'DIE-102', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, operator:'Suresh', remarks:'Minor chatter observed'}
+      ],
+      maintenance: [
+        {id:'MAINT-1', date:today(), dieId:'DIE-103', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
+      ],
+      settings: {warn:80, crit:100, popup:'once'}
+    };
     save();
-    resetDieForm();
+    alert('Demo data loaded.');
   }
 }
 
-function initSettings(){
-  $('sWarn').value=db.settings.warn;
-  $('sCrit').value=db.settings.crit;
-  $('sPopup').value=db.settings.popup;
+function clearAll(){
+  if(confirm('Are you sure you want to clear all data?')){
+    db = {dies:[], production:[], maintenance:[], settings:{warn:80, crit:100, popup:'once'}};
+    save();
+    alert('All data cleared.');
+  }
 }
 
-load();
-setToday();
-initSettings();
-renderAll();
-resetDieForm();
+// Initialize on load
+loadFirebaseData();
 </script>
 </body>
 </html>
