@@ -29,6 +29,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 @media(max-width:800px){.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.form-grid{grid-template-columns:1fr 1fr}.wrap{padding:13px}header{padding:18px}.metric{font-size:25px}}
 @media(max-width:520px){.form-grid{grid-template-columns:1fr}.cards{gap:8px}.card{padding:12px}.metric{font-size:23px}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="exportCSV()">Export die report (CSV)</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
@@ -105,6 +107,53 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <div id="modalHost"></div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD8PaHn-Oq_Fu72wH-M0ShloCxjJJdcM1s",
+  authDomain: "die-life-master.firebaseapp.com",
+  projectId: "die-life-master",
+  storageBucket: "die-life-master.firebasestorage.app",
+  messagingSenderId: "230042215882",
+  appId: "1:230042215882:web:445bd65bb01bb2a3aa9b33"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const dbCloud = firebase.firestore();
+
+let db={dies:[],production:[],maintenance:[],settings:{warn:80,crit:100,popup:'once'}};
+let popupSeen=new Set();
+
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toISOString().slice(0,10);
+const makeKey=(id,rev,side)=>(id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
+
+// 2. 👇 REPLACE YOUR OLD load() FUNCTION WITH THIS CLOUD VERSION
+function load(){
+  dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
+    if (doc.exists) {
+      let x = doc.data();
+      if(x && Array.isArray(x.dies)) {
+        db = {...db, ...x, settings: {...db.settings, ...(x.settings || {})}};
+        renderAll();
+      }
+    } else {
+      save(); // Initialize if empty
+    }
+  }, err => {
+    console.error("Firestore sync error:", err);
+  });
+}
+
+// 3. 👇 REPLACE YOUR OLD save() FUNCTION WITH THIS CLOUD VERSION
+function save(){
+  dbCloud.collection('monitorData').doc('mainState').set(db)
+    .then(() => {
+      renderAll();
+    })
+    .catch(err => {
+      alert("Error saving data to cloud: " + err.message);
+    });
+}
 const KEY='pultrusionDieLifeMonitor_v2';
 let db={dies:[],production:[],maintenance:[],settings:{warn:80,crit:100,popup:'once'}};
 let popupSeen=new Set();
