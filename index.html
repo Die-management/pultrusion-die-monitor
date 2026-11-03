@@ -11,9 +11,14 @@ header{background:#142b4a;color:white;padding:22px 28px;display:flex;justify-con
 h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width:1500px;margin:auto;padding:22px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:8px;padding:10px 13px;font-weight:650;cursor:pointer;background:var(--blue);color:white}.btn.secondary{background:#e9eef8;color:#1d3764}.btn.danger{background:#b42318}.btn.small{padding:6px 9px;font-size:12px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab{background:#e7edf7;color:#263956;border:0;border-radius:99px;padding:11px 15px;font-weight:700;cursor:pointer}.tab.active{background:#2457c5;color:white}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;margin-bottom:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px;box-shadow:0 2px 7px #15294b08}.metric-label{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.metric{font-size:29px;font-weight:800;margin-top:5px}.sub{color:var(--muted);font-size:12px}.panel{background:white;border:1px solid var(--line);border-radius:13px;margin-bottom:17px;overflow:hidden}.panel-head{padding:15px 17px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.panel-head h2{font-size:16px;margin:0}.panel-body{padding:17px}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:14px;margin-bottom:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px;box-shadow:0 2px 7px #15294b08}.metric-label{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.metric{font-size:29px;font-weight:800;margin-top:5px}.sub{color:var(--muted);font-size:12px}.panel{background:white;border:1px solid var(--line);border-radius:13px;margin-bottom:17px;overflow:hidden}.panel-head{padding:15px 17px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.panel-head h2{font-size:16px;margin:0}.panel-body{padding:17px}
 
-/* Grid Layout for 50+ Compact Die Cards */
+/* Collapsible Section Styles */
+.collapsible-head{cursor:pointer;user-select:none;transition:background 0.2s}
+.collapsible-head:hover{background:#f8faff}
+.toggle-icon{font-size:12px;font-weight:700;color:var(--blue);margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+
+/* Grid Layout for Compact Die Cards */
 .die-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;padding:17px}
 .die-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;display:flex;flex-direction:column;gap:6px}
 .die-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px #15294b15;border-color:var(--blue)}
@@ -26,6 +31,17 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 .bar{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;min-width:100px}.bar span{height:100%;display:block;border-radius:20px}.filters{display:flex;gap:9px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:12px;font-weight:700;color:#536078}.field input,.field select,.field textarea{border:1px solid #ccd5e3;border-radius:8px;padding:10px;background:white;color:var(--ink);font:inherit;width:100%}.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}.alert{padding:12px 14px;border-radius:99px;margin:0 0 12px;background:#fff0d3;color:#7c4700;border:1px solid #f4d59a}.alert.red{background:#fde7e7;color:#9b1c1c;border-color:#f3b7b7}.alert-die{font-weight:800;padding:1px 3px;border-radius:4px;white-space:nowrap}.alert-die.c1{color:#174ea6}.alert-die.c2{color:#7b1fa2}.alert-die.c3{color:#087f5b}.alert-die.c4{color:#b45309}.alert-die.c5{color:#b42318}.alert-die.c6{color:#075985}.alert-die.c7{color:#6d4c41}.alert-die.c8{color:#4b5563}.hidden{display:none!important}.note{font-size:12px;color:var(--muted);margin-top:10px}.modal-backdrop{position:fixed;inset:0;background:#0b1428a8;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{max-width:560px;width:100%;background:white;border-radius:15px;padding:23px;box-shadow:0 20px 70px #0004}.modal h2{margin:0 0 8px}.modal p{color:#596579}.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}.footer{color:#758198;font-size:12px;text-align:center;padding:10px}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0;background:#f8faff;padding:12px;border-radius:8px;border:1px solid var(--line)}
 .detail-item{font-size:13px}.detail-item label{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+
+/* Production vs Rejection Progress & Chart Bar */
+.yield-bar-wrap{display:flex;align-items:center;gap:8px;width:100%;min-width:140px}
+.yield-progress-bar{height:10px;background:#c62828;border-radius:10px;overflow:hidden;flex:1;display:flex}
+.yield-progress-good{height:100%;background:#16834a;transition:width 0.3s}
+
+/* Compact Production Log & Log-style Tables */
+.compact-log-wrap{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.compact-log-wrap table th{position:sticky;top:0;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.compact-log-wrap table th, .compact-log-wrap table td{padding:6px 10px;font-size:12px}
+
 @media(max-width:800px){.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.form-grid{grid-template-columns:1fr 1fr}.wrap{padding:13px}header{padding:18px}.metric{font-size:25px}}
 @media(max-width:520px){.form-grid{grid-template-columns:1fr}.cards{gap:8px}.card{padding:12px}.metric{font-size:23px}}
 </style>
@@ -47,22 +63,49 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <!-- DASHBOARD TAB -->
 <section id="tab-dashboard">
 <div class="cards" id="metrics"></div>
+
+<!-- MINIMIZED / COLLAPSIBLE DIE MASTER OVERVIEW -->
 <div class="panel">
-  <div class="panel-head">
-    <h2>Die life overview</h2>
-    <div class="filters">
-      <input id="searchDie" placeholder="Search die / revision / profile…" oninput="renderDashboard()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
-      <select id="statusFilter" onchange="renderDashboard()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
-        <option value="all">All statuses</option>
-        <option value="Normal">Normal</option>
-        <option value="Warning">Warning</option>
-        <option value="Critical">Critical</option>
-        <option value="Under Maintenance">Under Maintenance</option>
-        <option value="Inactive">Inactive</option>
-      </select>
+  <div class="panel-head collapsible-head" onclick="toggleDieGrid()">
+    <div style="display:flex;align-items:center;gap:10px">
+      <h2>Die life overview</h2>
+      <span class="sub" id="dieGridCountSub"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="filters" onclick="event.stopPropagation()">
+        <input id="searchDie" placeholder="Search die / revision / profile…" oninput="renderDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <select id="statusFilter" onchange="renderDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+          <option value="all">All statuses</option>
+          <option value="Normal">Normal</option>
+          <option value="Warning">Warning</option>
+          <option value="Critical">Critical</option>
+          <option value="Under Maintenance">Under Maintenance</option>
+          <option value="Under Repair">Under Repair</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <span class="toggle-icon" id="toggleDieGridBtn">▲ Minimize</span>
     </div>
   </div>
   <div id="dieGrid" class="die-grid"></div>
+</div>
+
+<!-- DAY-WISE PRODUCTION V/S REJECTION YIELD TABLE -->
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Daily Production vs. Rejection Yield</h2>
+      <span class="sub">Day-wise yield efficiency summary (Metres produced vs rejected)</span>
+    </div>
+    <div class="filters">
+      <input id="yieldDateFilter" type="date" aria-label="Filter yield by date" title="Filter by date" onchange="renderDayWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+      <select id="yieldDieFilter" onchange="renderDayWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <option value="">All Dies</option>
+      </select>
+      <button class="btn secondary small" onclick="$('yieldDateFilter').value='';$('yieldDieFilter').value='';renderDayWiseYield()">Clear filters</button>
+    </div>
+  </div>
+  <div class="table-wrap compact-log-wrap" id="dailyYieldTable"></div>
 </div>
 </section>
 
@@ -73,25 +116,49 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <div class="field"><label>Approved die life (m) *</label><input id="dLife" type="number" min="1" required placeholder="e.g. 25000"></div><div class="field"><label>Warning threshold (%)</label><input id="dWarn" type="number" min="1" max="100" value="95" required></div>
 <div class="field"><label>Critical threshold (%)</label><input id="dCrit" type="number" min="1" max="200" value="100" required></div><div class="field"><label>Current cumulative life (m)</label><input id="dBase" type="number" min="0" value="0" required><small class="sub">Use this for dies already in service before starting the tracker.</small></div><div class="field"><label>Die status</label><select id="dActive"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Under maintenance">Under maintenance</option></select></div>
 <div class="field wide"><label>Notes</label><textarea id="dNotes" rows="2" placeholder="Condition, owner, storage location…"></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save die</button><button class="btn secondary" type="button" onclick="resetDieForm()">Clear form</button></div></form></div></div>
-<div class="panel"><div class="panel-head"><h2>Die master register</h2><span class="sub">Edit or retire a die revision without deleting its history</span></div><div class="table-wrap" id="masterTable"></div></div>
+
+<!-- DIE MASTER REGISTER (LOG-STYLE VIEW WITH SEARCH & COMPACT WRAP) -->
+<div class="panel">
+  <div class="panel-head">
+    <h2>Die master register</h2>
+    <div class="filters">
+      <input id="masterSearch" placeholder="Search die / revision / profile…" oninput="renderDies()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
+      <button class="btn secondary small" onclick="$('masterSearch').value='';renderDies()">Clear filter</button>
+      <button class="btn secondary small" onclick="exportCSV()">Export CSV</button>
+    </div>
+  </div>
+  <div class="table-wrap compact-log-wrap" id="masterTableWrap"></div>
+</div>
 </section>
 
 <!-- PRODUCTION TAB -->
 <section id="tab-production" class="hidden">
-<div class="panel"><div class="panel-head"><h2>Record daily production</h2><span class="sub">Enter net running length for each die ID, revision, machine, and shift</span></div><div class="panel-body"><form id="prodForm"><div class="form-grid">
+<div class="panel"><div class="panel-head"><h2 id="prodFormTitle">Record daily production</h2><span class="sub" id="prodFormSubtitle">Enter net running length for each die ID, revision, machine, and shift</span></div><div class="panel-body"><form id="prodForm"><input type="hidden" id="editProdId"><div class="form-grid">
 <div class="field"><label>Production date *</label><input type="date" id="pDate" required></div><div class="field"><label>Die ID *</label><select id="pDieId" required onchange="onProductionDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="pRevision" required disabled onchange="onProductionRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="pSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Machine</label><input id="pMachine" placeholder="Machine ID"></div>
-<div class="field"><label>Shift *</label><select id="pShift" required><option>General</option><option>1st</option><option>2nd</option><option>3rd</option></select></div><div class="field"><label>Production length (m) *</label><input id="pLength" type="number" min="0" step="0.01" required placeholder="e.g. 1250"></div><div class="field"><label>Operator / supervisor</label><input id="pOperator"></div>
-<div class="field wide"><label>Remarks / stoppage / quality observation</label><textarea id="pRemarks" rows="2"></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save production entry</button><button class="btn secondary" type="button" onclick="resetProdForm()">Clear</button></div></form><p class="note">Life increases by the entered metres for the specified Die ID + Revision + Side. For multiple shifts, add one entry per shift.</p></div></div>
-<div class="panel"><div class="panel-head"><h2>Production log</h2><div class="filters"><input id="prodDateFilter" type="date" aria-label="Filter production by date" title="Filter by production date" onchange="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><input id="prodSearch" placeholder="Search die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><button class="btn secondary small" onclick="$('prodDateFilter').value='';$('prodSearch').value='';renderProduction()">Clear filters</button><button class="btn secondary small" onclick="exportProductionCSV()">Export production CSV</button></div></div><div class="table-wrap" id="productionTable"></div></div>
+<div class="field"><label>Shift *</label><select id="pShift" required><option>General</option><option>1st</option><option>2nd</option><option>3rd</option></select></div><div class="field"><label>Production length (m) *</label><input id="pLength" type="number" min="0" step="0.01" required placeholder="e.g. 1250"></div><div class="field"><label>Rejection length (m)</label><input id="pRejection" type="number" min="0" step="0.01" value="0" placeholder="e.g. 15"></div><div class="field"><label>Operator / supervisor</label><input id="pOperator"></div>
+<div class="field wide"><label>Remarks / stoppage / quality observation</label><textarea id="pRemarks" rows="2"></textarea></div></div><div class="form-actions"><button class="btn" type="submit" id="prodSubmitBtn">Save production entry</button><button class="btn secondary" type="button" onclick="resetProdForm()">Clear</button></div></form><p class="note">Life increases by the entered metres for the specified Die ID + Revision + Side. For multiple shifts, add one entry per shift.</p></div></div>
+<div class="panel"><div class="panel-head"><h2>Production log</h2><div class="filters"><input id="prodDateFilter" type="date" aria-label="Filter production by date" title="Filter by production date" onchange="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><input id="prodSearch" placeholder="Search die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><button class="btn secondary small" onclick="$('prodDateFilter').value='';$('prodSearch').value='';renderProduction()">Clear filters</button><button class="btn secondary small" onclick="exportProductionCSV()">Export production CSV</button></div></div><div class="table-wrap compact-log-wrap" id="productionTable"></div></div>
 </section>
 
 <!-- MAINTENANCE TAB -->
 <section id="tab-maintenance" class="hidden">
-<div class="panel"><div class="panel-head"><h2>Log inspection, repair or rechroming</h2></div><div class="panel-body"><form id="maintForm"><div class="form-grid">
+<div class="panel"><div class="panel-head"><h2 id="maintFormTitle">Log inspection, repair or rechroming</h2></div><div class="panel-body"><form id="maintForm"><input type="hidden" id="editMaintId"><div class="form-grid">
 <div class="field"><label>Date *</label><input id="mDate" type="date" required></div><div class="field"><label>Die ID *</label><select id="mDieId" required onchange="onMaintDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="mRevision" required disabled onchange="onMaintRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="mSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Activity *</label><select id="mType" required><option>Inspection</option><option>Cleaning</option><option>Require Rechroming</option><option>Rechroming sent</option><option>Rechroming received</option><option>Other</option></select></div>
 <div class="field"><label>Vendor / responsible person</label><input id="mOwner"></div><div class="field"><label>Cost (₹, optional)</label><input id="mCost" type="number" min="0" step="0.01"></div><div class="field"><label>Disposition</label><select id="mDisposition"><option>Hold by QC</option><option>Under Repair</option><option>Ready for use</option><option>Discarded</option></select></div>
 <div class="field wide"><label>Findings / work done / next action *</label><textarea id="mNotes" rows="3" required placeholder="Condition, measurements, defects, due date, etc."></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save maintenance record</button><button class="btn secondary" type="button" onclick="resetMaintForm()">Clear</button></div></form><p class="note">Rechroming is recorded in the history; it does not automatically reset accumulated life. Only reset life after an authorised engineering decision and documented baseline.</p></div></div>
-<div class="panel"><div class="panel-head"><h2>Maintenance history</h2></div><div class="table-wrap" id="maintenanceTable"></div></div>
+
+<!-- MAINTENANCE HISTORY (LOG-STYLE VIEW WITH SEARCH & COMPACT WRAP) -->
+<div class="panel">
+  <div class="panel-head">
+    <h2>Maintenance history</h2>
+    <div class="filters">
+      <input id="maintSearch" placeholder="Search die / activity / vendor…" oninput="renderMaintenance()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
+      <button class="btn secondary small" onclick="$('maintSearch').value='';renderMaintenance()">Clear filter</button>
+      <button class="btn secondary small" onclick="exportMaintenanceCSV()">Export maintenance CSV</button>
+    </div>
+  </div>
+  <div class="table-wrap compact-log-wrap" id="maintenanceTableWrap"></div>
+</div>
 </section>
 
 <!-- SETTINGS TAB -->
@@ -122,11 +189,17 @@ const dbCloud = firebase.firestore();
 let db = {dies:[], production:[], maintenance:[], settings:{warn:95, crit:100, popup:'once'}};
 let popupSeen = new Set();
 let settingsUnlocked = false;
+let dieGridMinimized = false;
 const SETTINGS_PASSWORD = "keci123";
 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0,10);
 const makeKey = (id, rev, side) => (id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
+
+function toggleDieGrid(){
+  dieGridMinimized = !dieGridMinimized;
+  renderDashboard();
+}
 
 function loadFirebaseData(){
   dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
@@ -169,6 +242,7 @@ function latestMaintenance(d){
   const k = getDieKey(d);
   return db.maintenance.find(m => makeKey(m.dieId, m.revision, m.side) === k) || null;
 }
+
 function status(d){
   if(d.active === 'Inactive') return 'Inactive';
   const latest = latestMaintenance(d);
@@ -179,7 +253,7 @@ function status(d){
 }
 
 function badge(s){
-  let c = s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':s==='Under Repair'?'repair':'inactive';
+  let c = s==='Normal'?'normal':s==='Warning'?'warning':s==='Critical'?'critical':(s==='Under Repair'||s==='Under Maintenance')?'repair':'inactive';
   return `<span class="status ${c}">${esc(s)}</span>`;
 }
 
@@ -192,8 +266,8 @@ function showTab(tab){
   document.querySelectorAll('[id^="tab-"]').forEach(x=>x.classList.add('hidden'));
   $('tab-'+tab).classList.remove('hidden');
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
-  if(tab==='production') resetProdForm();
-  if(tab==='maintenance') resetMaintForm();
+  if(tab==='production' && !$('editProdId').value) resetProdForm();
+  if(tab==='maintenance' && !$('editMaintId').value) resetMaintForm();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -246,8 +320,7 @@ function renderAll(){
 }
 
 function renderAlerts(){
-  // Dies with a latest Under Repair maintenance disposition are excluded from warnings/popups.
-  let eligible = db.dies.filter(d => d.active==='Active' && status(d)!=='Under Repair');
+  let eligible = db.dies.filter(d => d.active !== 'Inactive' && status(d) !== 'Under Repair' && status(d) !== 'Under Maintenance');
   let critical = eligible.filter(d => status(d)==='Critical');
   let warning = eligible.filter(d => status(d)==='Warning');
   const coloredDie = (d, i, detail) => `<span class="alert-die c${(i%8)+1}">${esc(d.id)} (Rev ${esc(d.revision||'N/A')}, Side ${esc(d.size||'A')} — ${detail})</span>`;
@@ -311,27 +384,154 @@ function openDieModal(id, rev, side){
 }
 
 function renderDashboard(){
-  let active = db.dies.filter(d=>d.active!=='Inactive'), warn = active.filter(d=>status(d)==='Warning').length, crit = active.filter(d=>status(d)==='Critical').length, totalLife = active.reduce((s,d)=>s+life(d),0);
-  $('metrics').innerHTML = [['Active dies',active.length,'Not marked inactive'],['Warning',warn,'At configured warning threshold'],['Critical',crit,'Inspect / review before use'],['Cumulative metres',num(totalLife),'Across active dies']].map((m,i)=>`<div class="card"><div class="metric-label">${m[0]}</div><div class="metric" style="color:${i===1&&warn?'#b96b00':i===2&&crit?'#c62828':'#172033'}">${m[1]}</div><div class="sub">${m[2]}</div></div>`).join('');
+  let active = db.dies.filter(d => d.active !== 'Inactive' && status(d) !== 'Under Maintenance' && status(d) !== 'Under Repair');
+  let warn = active.filter(d => status(d)==='Warning').length;
+  let crit = active.filter(d => status(d)==='Critical').length;
+  let totalLife = active.reduce((s,d)=>s+life(d),0);
+
+  let totalProdM = db.production.reduce((s,p)=>s+Number(p.length||0),0);
+  let totalRejM = db.production.reduce((s,p)=>s+Number(p.rejection||0),0);
+  let overallYieldPct = (totalProdM + totalRejM) > 0 ? (totalProdM / (totalProdM + totalRejM) * 100) : 100;
+
+  $('metrics').innerHTML = [
+    ['Active dies', active.length, 'In active production status'],
+    ['Warning', warn, 'At warning threshold'],
+    ['Critical', crit, 'Inspect / review before use'],
+    ['Cumulative metres', num(totalLife), 'Across active dies'],
+    ['Overall Yield', num(overallYieldPct)+'%', `${num(totalRejM)} m total rejection`]
+  ].map((m,i)=>`<div class="card"><div class="metric-label">${m[0]}</div><div class="metric" style="color:${i===1&&warn?'#b96b00':i===2&&crit?'#c62828':i===4&&(overallYieldPct<95)?'#b96b00':'#172033'}">${m[1]}</div><div class="sub">${m[2]}</div></div>`).join('');
   
   let q = ($('searchDie')?.value||'').toLowerCase(), f = $('statusFilter')?.value||'all';
-  // Number-wise sorting (natural sort on ID)
-  let rows = db.dies.filter(d=>(d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q) && (f==='all'||status(d)===f)).sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
   
-  $('dieGrid').innerHTML = rows.length ? rows.map(d=>`
-    <div class="die-card" onclick="openDieModal('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">
-      <div class="die-card-header">
-        <span class="die-card-id">${esc(d.id)} (Side ${esc(d.size||'A')})</span>
-        <span class="die-card-rev">${esc(d.revision||'—')}</span>
+  let rows = db.dies.filter(d => {
+    let matchesSearch = (d.id+' '+(d.revision||'')+' '+d.profile+' Side '+(d.size||'A')).toLowerCase().includes(q);
+    let st = status(d);
+    if(f === 'all'){
+      return matchesSearch && st !== 'Inactive' && st !== 'Under Maintenance' && st !== 'Under Repair';
+    }
+    return matchesSearch && st === f;
+  }).sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
+  
+  $('dieGridCountSub').textContent = `(${rows.length} ${dieGridMinimized ? 'hidden' : 'shown'})`;
+  $('toggleDieGridBtn').textContent = dieGridMinimized ? '▼ Expand' : '▲ Minimize';
+
+  if(dieGridMinimized){
+    $('dieGrid').classList.add('hidden');
+  } else {
+    $('dieGrid').classList.remove('hidden');
+    $('dieGrid').innerHTML = rows.length ? rows.map(d=>`
+      <div class="die-card" onclick="openDieModal('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">
+        <div class="die-card-header">
+          <span class="die-card-id">${esc(d.id)} (Side ${esc(d.size||'A')})</span>
+          <span class="die-card-rev">${esc(d.revision||'—')}</span>
+        </div>
+        <div>${badge(status(d))}</div>
       </div>
-      <div>${badge(status(d))}</div>
-    </div>
-  `).join('') : '<div class="empty" style="grid-column:1/-1">No dies match. Add dies in Die master or change the filter.</div>';
+    `).join('') : '<div class="empty" style="grid-column:1/-1">No active dies match. Change the status filter or add active dies in Die master.</div>';
+  }
+
+  populateYieldDieFilter();
+  renderDayWiseYield();
+}
+
+function populateYieldDieFilter(){
+  let dieSelect = $('yieldDieFilter');
+  if(!dieSelect) return;
+  let prev = dieSelect.value;
+  let uniqueDieIds = [...new Set(db.dies.map(d=>d.id))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+  dieSelect.innerHTML = '<option value="">All Dies</option>' + uniqueDieIds.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  if(uniqueDieIds.includes(prev)) dieSelect.value = prev;
+}
+
+function renderDayWiseYield(){
+  let dateFilter = $('yieldDateFilter')?.value || '';
+  let dieFilter = $('yieldDieFilter')?.value || '';
+
+  let dateMap = {};
+  
+  db.production.forEach(p => {
+    if(dateFilter && p.date !== dateFilter) return;
+    if(dieFilter && p.dieId !== dieFilter) return;
+
+    let d = p.date || 'Unknown';
+    if(!dateMap[d]){
+      dateMap[d] = { totalM: 0, rejM: 0, entries: 0 };
+    }
+    dateMap[d].totalM += Number(p.length || 0);
+    dateMap[d].rejM += Number(p.rejection || 0);
+    dateMap[d].entries += 1;
+  });
+
+  let sortedDates = Object.keys(dateMap).sort((a,b) => b.localeCompare(a));
+
+  if(!sortedDates.length){
+    $('dailyYieldTable').innerHTML = '<div class="empty">No daily production matching the selected filters.</div>';
+    return;
+  }
+
+  let rowsHtml = sortedDates.map(d => {
+    let item = dateMap[d];
+    let grossInput = item.totalM + item.rejM;
+    let yieldPct = grossInput > 0 ? (item.totalM / grossInput * 100) : 100;
+    let rejPct = grossInput > 0 ? (item.rejM / grossInput * 100) : 0;
+    let barColor = yieldPct >= 95 ? '#16834a' : yieldPct >= 90 ? '#b96b00' : '#c62828';
+
+    return `<tr>
+      <td><strong>${esc(d)}</strong></td>
+      <td><strong>${num(item.totalM)} m</strong></td>
+      <td><strong style="color:${item.rejM > 0 ? 'var(--red)' : 'inherit'}">${num(item.rejM)} m</strong></td>
+      <td><strong style="color:${rejPct > 5 ? 'var(--red)' : 'var(--muted)'}">${num(rejPct)}%</strong></td>
+      <td><strong style="color:${barColor}">${num(yieldPct)}%</strong></td>
+      <td>
+        <div class="yield-bar-wrap">
+          <div class="yield-progress-bar" title="Good Yield: ${num(yieldPct)}% | Rejection: ${num(rejPct)}%">
+            <div class="yield-progress-good" style="width:${yieldPct}%"></div>
+          </div>
+        </div>
+      </td>
+      <td>${item.entries} shifts/logs</td>
+    </tr>`;
+  }).join('');
+
+  $('dailyYieldTable').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Gross Good Production (m)</th>
+          <th>Rejection (m)</th>
+          <th>Rejection %</th>
+          <th>Yield Efficiency %</th>
+          <th style="width:200px">Production vs Rejection Yield</th>
+          <th>Logged Entries</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderDies(){
-  let sortedDies = [...db.dies].sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
-  $('masterTable').innerHTML = sortedDies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${sortedDies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maintenance</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered. Use the form above to add your first die.</div>';
+  let q = ($('masterSearch')?.value || '').toLowerCase();
+  let sortedDies = db.dies.filter(d => (d.id + ' ' + (d.revision||'') + ' ' + d.profile + ' ' + (d.notes||'')).toLowerCase().includes(q))
+    .sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
+  
+  $('masterTableWrap').innerHTML = sortedDies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${sortedDies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maint.</button> <button class="btn danger small" onclick="deleteDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered matching filter.</div>';
+}
+
+function deleteDie(id, rev, size){
+  let k = makeKey(id, rev, size);
+  let dieLabel = `${id} (Rev: ${rev || '—'}, Side ${size || 'A'})`;
+  
+  if(confirm(`Are you sure you want to delete ${dieLabel} from the Die Master? This will also remove associated production entries and maintenance history for this specific die revision/side.`)){
+    db.dies = db.dies.filter(x => getDieKey(x) !== k);
+    db.production = db.production.filter(p => makeKey(p.dieId, p.revision, p.side) !== k);
+    db.maintenance = db.maintenance.filter(m => makeKey(m.dieId, m.revision, m.side) !== k);
+    save();
+    alert('Die and its associated records have been deleted successfully.');
+  }
 }
 
 function resetDieForm(){
@@ -409,9 +609,9 @@ $('dieForm').addEventListener('submit', e => {
   alert('Die master saved.');
 });
 
-function populateDieIdSelects(){
-  let activeDies = db.dies.filter(d=>d.active!=='Inactive');
-  let uniqueDieIds = [...new Set(activeDies.map(d=>d.id))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+function populateDieIdSelects(includeAll = false){
+  let diesList = includeAll ? db.dies : db.dies.filter(d=>d.active!=='Inactive');
+  let uniqueDieIds = [...new Set(diesList.map(d=>d.id))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
 
   for(let id of ['pDieId','mDieId']){
     let el = $(id), prev = el.value;
@@ -479,7 +679,7 @@ function onMaintDieIdChange(){
     return;
   }
 
-  let matchingRevs = [...new Set(db.dies.filter(d=>d.id===selectedId && d.active!=='Inactive').map(d=>d.revision))];
+  let matchingRevs = [...new Set(db.dies.filter(d=>d.id===selectedId).map(d=>d.revision))];
   revSelect.innerHTML = '<option value="">Select Revision…</option>' + matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
   revSelect.disabled = false;
   sideSelect.innerHTML = '<option value="">Select Side…</option>';
@@ -502,7 +702,7 @@ function onMaintRevisionChange(){
     return;
   }
 
-  let matchingSides = db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev && d.active!=='Inactive').map(d=>d.size||'A');
+  let matchingSides = db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev).map(d=>d.size||'A');
   sideSelect.innerHTML = '<option value="">Select Side…</option>' + matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
   sideSelect.disabled = false;
 
@@ -512,6 +712,7 @@ function onMaintRevisionChange(){
 }
 
 function prefillMaint(id, rev, side){
+  populateDieIdSelects(true);
   $('mDieId').value = id;
   onMaintDieIdChange();
   $('mRevision').value = rev;
@@ -522,17 +723,51 @@ function prefillMaint(id, rev, side){
 
 function resetProdForm(){
   $('prodForm').reset();
+  $('editProdId').value = '';
   $('pDate').value = today();
+  $('pRejection').value = 0;
+  $('pDieId').disabled = false;
   $('pRevision').innerHTML = '<option value="">Select Revision…</option>';
   $('pRevision').disabled = true;
   $('pSide').innerHTML = '<option value="">Select Side…</option>';
   $('pSide').disabled = true;
+  if($('prodFormTitle')) $('prodFormTitle').textContent = 'Record daily production';
+  if($('prodFormSubtitle')) $('prodFormSubtitle').textContent = 'Enter net running length for each die ID, revision, machine, and shift';
+  if($('prodSubmitBtn')) $('prodSubmitBtn').textContent = 'Save production entry';
+}
+
+function editProduction(id){
+  let p = db.production.find(x => x.id === id);
+  if(!p) return;
+  showTab('production');
+  populateDieIdSelects(true);
+  $('editProdId').value = p.id;
+  $('pDate').value = p.date;
+  $('pDieId').value = p.dieId;
+  $('pDieId').disabled = true;
+  onProductionDieIdChange();
+  $('pRevision').value = p.revision;
+  $('pRevision').disabled = true;
+  onProductionRevisionChange();
+  $('pSide').value = p.side || 'A';
+  $('pSide').disabled = true;
+  $('pMachine').value = p.machine || '';
+  $('pShift').value = p.shift;
+  $('pLength').value = p.length;
+  $('pRejection').value = p.rejection || 0;
+  $('pOperator').value = p.operator || '';
+  $('pRemarks').value = p.remarks || '';
+  if($('prodFormTitle')) $('prodFormTitle').textContent = 'Edit production entry';
+  if($('prodFormSubtitle')) $('prodFormSubtitle').textContent = `Editing entry for ${p.dieId} (Rev ${p.revision || '—'}, Side ${p.side || 'A'})`;
+  if($('prodSubmitBtn')) $('prodSubmitBtn').textContent = 'Update production entry';
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 $('prodForm').addEventListener('submit', e => {
   e.preventDefault();
+  let editId = $('editProdId').value;
   let p = {
-    id: 'PROD-' + Date.now(),
+    id: editId || ('PROD-' + Date.now()),
     date: $('pDate').value,
     dieId: $('pDieId').value,
     revision: $('pRevision').value,
@@ -540,20 +775,28 @@ $('prodForm').addEventListener('submit', e => {
     machine: $('pMachine').value.trim(),
     shift: $('pShift').value,
     length: Number($('pLength').value),
+    rejection: Number($('pRejection').value || 0),
     operator: $('pOperator').value.trim(),
     remarks: $('pRemarks').value.trim()
   };
-  db.production.unshift(p);
+
+  if(editId){
+    db.production = db.production.map(x => x.id === editId ? p : x);
+    alert('Production entry updated.');
+  } else {
+    db.production.unshift(p);
+    alert('Production entry saved.');
+  }
+
   resetProdForm();
   save();
-  alert('Production entry saved.');
 });
 
 function renderProduction(){
   let q = ($('prodSearch')?.value||'').toLowerCase();
   let dateFilter = $('prodDateFilter')?.value || '';
   let rows = db.production.filter(p=>(!dateFilter || p.date===dateFilter) && (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q));
-  $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Operator</th><th>Remarks</th><th>Action</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
+  $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Rejection (m)</th><th>Operator</th><th>Remarks</th><th>Actions</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td><strong style="color:${Number(p.rejection||0)>0?'var(--red)':'inherit'}">${num(p.rejection||0)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="editProduction('${p.id}')">Edit</button> <button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
 }
 
 function deleteProduction(id){
@@ -565,17 +808,40 @@ function deleteProduction(id){
 
 function resetMaintForm(){
   $('maintForm').reset();
+  $('editMaintId').value = '';
   $('mDate').value = today();
   $('mRevision').innerHTML = '<option value="">Select Revision…</option>';
   $('mRevision').disabled = true;
   $('mSide').innerHTML = '<option value="">Select Side…</option>';
   $('mSide').disabled = true;
+  if($('maintFormTitle')) $('maintFormTitle').textContent = 'Log inspection, repair or rechroming';
+}
+
+function editMaintenance(id){
+  let m = db.maintenance.find(x => x.id === id);
+  if(!m) return;
+  showTab('maintenance');
+  populateDieIdSelects(true);
+  $('editMaintId').value = m.id;
+  $('mDate').value = m.date;
+  $('mDieId').value = m.dieId;
+  onMaintDieIdChange();
+  $('mRevision').value = m.revision;
+  onMaintRevisionChange();
+  $('mSide').value = m.side || 'A';
+  $('mType').value = m.type;
+  $('mOwner').value = m.owner || '';
+  $('mCost').value = m.cost || '';
+  $('mDisposition').value = m.disposition;
+  $('mNotes').value = m.notes || '';
+  if($('maintFormTitle')) $('maintFormTitle').textContent = 'Edit maintenance record';
 }
 
 $('maintForm').addEventListener('submit', e => {
   e.preventDefault();
+  let editId = $('editMaintId').value;
   let m = {
-    id: 'MAINT-' + Date.now(),
+    id: editId || ('MAINT-' + Date.now()),
     date: $('mDate').value,
     dieId: $('mDieId').value,
     revision: $('mRevision').value,
@@ -586,18 +852,27 @@ $('maintForm').addEventListener('submit', e => {
     disposition: $('mDisposition').value,
     notes: $('mNotes').value.trim()
   };
-  db.maintenance.unshift(m);
-  // Mirror repair state in Die Master; latest maintenance record determines displayed status.
+
+  if(editId){
+    db.maintenance = db.maintenance.map(x => x.id === editId ? m : x);
+  } else {
+    db.maintenance.unshift(m);
+  }
+
   const matchingDie = db.dies.find(d => getDieKey(d) === makeKey(m.dieId, m.revision, m.side));
   if(matchingDie && m.disposition === 'Under Repair') matchingDie.active = 'Under maintenance';
   else if(matchingDie && m.disposition === 'Ready for use' && matchingDie.active === 'Under maintenance') matchingDie.active = 'Active';
+
   resetMaintForm();
   save();
   alert('Maintenance record saved.');
 });
 
 function renderMaintenance(){
-  $('maintenanceTable').innerHTML = db.maintenance.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Activity</th><th>Vendor / Person</th><th>Cost</th><th>Disposition</th><th>Findings / Notes</th><th>Action</th></tr></thead><tbody>${db.maintenance.map(m=>`<tr><td>${esc(m.date)}</td><td><strong>${esc(m.dieId)}</strong></td><td>${esc(m.revision||'—')}</td><td>Side ${esc(m.side||'A')}</td><td><strong>${esc(m.type)}</strong></td><td>${esc(m.owner||'—')}</td><td>${m.cost? '₹'+num(m.cost):'—'}</td><td>${esc(m.disposition)}</td><td>${esc(m.notes)}</td><td><button class="btn secondary small" onclick="deleteMaintenance('${m.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No maintenance records found.</div>';
+  let q = ($('maintSearch')?.value || '').toLowerCase();
+  let rows = db.maintenance.filter(m => (m.date + ' ' + m.dieId + ' ' + (m.revision||'') + ' ' + (m.type||'') + ' ' + (m.owner||'') + ' ' + (m.notes||'')).toLowerCase().includes(q));
+
+  $('maintenanceTableWrap').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Activity</th><th>Vendor / Person</th><th>Cost</th><th>Disposition</th><th>Findings / Notes</th><th>Actions</th></tr></thead><tbody>${rows.map(m=>`<tr><td>${esc(m.date)}</td><td><strong>${esc(m.dieId)}</strong></td><td>${esc(m.revision||'—')}</td><td>Side ${esc(m.side||'A')}</td><td><strong>${esc(m.type)}</strong></td><td>${esc(m.owner||'—')}</td><td>${m.cost? '₹'+num(m.cost):'—'}</td><td>${esc(m.disposition)}</td><td>${esc(m.notes)}</td><td><button class="btn secondary small" onclick="editMaintenance('${m.id}')">Edit</button> <button class="btn secondary small" onclick="deleteMaintenance('${m.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No maintenance records found matching filter.</div>';
 }
 
 function deleteMaintenance(id){
@@ -660,14 +935,26 @@ function exportCSV(){
 }
 
 function exportProductionCSV(){
-  let csv = 'Date,Die ID,Revision,Side,Machine,Shift,Length (m),Operator,Remarks\n';
+  let csv = 'Date,Die ID,Revision,Side,Machine,Shift,Length (m),Rejection (m),Operator,Remarks\n';
   db.production.forEach(p=>{
-    csv += `"${p.date}","${p.dieId}","${p.revision||''}","Side ${p.side||'A'}","${p.machine||''}","${p.shift}",${p.length},"${p.operator||''}","${p.remarks||''}"\n`;
+    csv += `"${p.date}","${p.dieId}","${p.revision||''}","Side ${p.side||'A'}","${p.machine||''}","${p.shift}",${p.length},${p.rejection||0},"${p.operator||''}","${p.remarks||''}"\n`;
   });
   let blob = new Blob([csv], {type:'text/csv'});
   let a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'production_log_' + today() + '.csv';
+  a.click();
+}
+
+function exportMaintenanceCSV(){
+  let csv = 'Date,Die ID,Revision,Side,Activity,Vendor/Person,Cost (INR),Disposition,Findings/Notes\n';
+  db.maintenance.forEach(m=>{
+    csv += `"${m.date}","${m.dieId}","${m.revision||''}","Side ${m.side||'A'}","${m.type}","${m.owner||''}",${m.cost||0},"${m.disposition}","${(m.notes||'').replace(/"/g, '""')}"\n`;
+  });
+  let blob = new Blob([csv], {type:'text/csv'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'maintenance_log_' + today() + '.csv';
   a.click();
 }
 
@@ -680,8 +967,8 @@ function loadDemo(){
         {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
       ],
       production: [
-        {id:'PROD-1', date:today(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'P-01', shift:'1st', length:4500, operator:'Ramesh', remarks:'Smooth run'},
-        {id:'PROD-2', date:today(), dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, operator:'Suresh', remarks:'Minor chatter observed'}
+        {id:'PROD-1', date:today(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'P-01', shift:'1st', length:4500, rejection:150, operator:'Ramesh', remarks:'Smooth run'},
+        {id:'PROD-2', date:today(), dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, rejection:30, operator:'Suresh', remarks:'Minor chatter observed'}
       ],
       maintenance: [
         {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
@@ -706,5 +993,3 @@ loadFirebaseData();
 </script>
 </body>
 </html>
-
-```
