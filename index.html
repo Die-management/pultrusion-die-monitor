@@ -28,9 +28,12 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 
 .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #edf0f5;white-space:nowrap}th{background:#f8faff;color:#526078;font-size:11px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}
 .status{display:inline-flex;padding:4px 9px;border-radius:99px;font-weight:800;font-size:11px}.repair{background:#e6eaff;color:#293b8f}.normal{background:#e4f7eb;color:#116536}.warning{background:#fff0d3;color:#8a4b00}.critical{background:#fde7e7;color:#a11b1b}.inactive{background:#e9edf2;color:#596579}
-.bar{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;min-width:100px}.bar span{height:100%;display:block;border-radius:20px}.filters{display:flex;gap:9px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:12px;font-weight:700;color:#536078}.field input,.field select,.field textarea{border:1px solid #ccd5e3;border-radius:8px;padding:10px;background:white;color:var(--ink);font:inherit;width:100%}.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}.alert{padding:12px 14px;border-radius:99px;margin:0 0 12px;background:#fff0d3;color:#7c4700;border:1px solid #f4d59a}.alert.red{background:#fde7e7;color:#9b1c1c;border-color:#f3b7b7}.alert-die{font-weight:800;padding:1px 3px;border-radius:4px;white-space:nowrap}.alert-die.c1{color:#174ea6}.alert-die.c2{color:#7b1fa2}.alert-die.c3{color:#087f5b}.alert-die.c4{color:#b45309}.alert-die.c5{color:#b42318}.alert-die.c6{color:#075985}.alert-die.c7{color:#6d4c41}.alert-die.c8{color:#4b5563}.hidden{display:none!important}.note{font-size:12px;color:var(--muted);margin-top:10px}.modal-backdrop{position:fixed;inset:0;background:#0b1428a8;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{max-width:560px;width:100%;background:white;border-radius:15px;padding:23px;box-shadow:0 20px 70px #0004}.modal h2{margin:0 0 8px}.modal p{color:#596579}.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}.footer{color:#758198;font-size:12px;text-align:center;padding:10px}
-.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0;background:#f8faff;padding:12px;border-radius:8px;border:1px solid var(--line)}
+.bar{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;min-width:100px}.bar span{height:100%;display:block;border-radius:20px}.filters{display:flex;gap:9px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:12px;font-weight:700;color:#536078}.field input,.field select,.field textarea{border:1px solid #ccd5e3;border-radius:8px;padding:10px;background:white;color:var(--ink);font:inherit;width:100%}.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}.alert{padding:12px 14px;border-radius:99px;margin:0 0 12px;background:#fff0d3;color:#7c4700;border:1px solid #f4d59a}.alert.red{background:#fde7e7;color:#9b1c1c;border-color:#f3b7b7}.alert-die{font-weight:800;padding:1px 3px;border-radius:4px;white-space:nowrap}.alert-die.c1{color:#174ea6}.alert-die.c2{color:#7b1fa2}.alert-die.c3{color:#087f5b}.alert-die.c4{color:#b45309}.alert-die.c5{color:#b42318}.alert-die.c6{color:#075985}.alert-die.c7{color:#6d4c41}.alert-die.c8{color:#4b5563}.hidden{display:none!important}.note{font-size:12px;color:var(--muted);margin-top:10px}.modal-backdrop{position:fixed;inset:0;background:#0b1428a8;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{max-width:760px;width:100%;background:white;border-radius:15px;padding:23px;box-shadow:0 20px 70px #0004;max-height:90vh;overflow-y:auto}.modal h2{margin:0 0 8px}.modal p{color:#596579}.modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}.footer{color:#758198;font-size:12px;text-align:center;padding:10px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0;background:#f8faff;padding:12px;border-radius:8px;border:1px solid var(--line)}
 .detail-item{font-size:13px}.detail-item label{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+
+.modal-sides-container{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.side-card-panel{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
 
 /* Production vs Rejection Progress & Chart Bar */
 .yield-bar-wrap{display:flex;align-items:center;gap:8px;width:100%;min-width:140px}
@@ -42,7 +45,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 .compact-log-wrap table th{position:sticky;top:0;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
 .compact-log-wrap table th, .compact-log-wrap table td{padding:6px 10px;font-size:12px}
 
-@media(max-width:800px){.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.form-grid{grid-template-columns:1fr 1fr}.wrap{padding:13px}header{padding:18px}.metric{font-size:25px}}
+@media(max-width:800px){.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.form-grid{grid-template-columns:1fr 1fr}.wrap{padding:13px}header{padding:18px}.metric{font-size:25px}.modal-sides-container{grid-template-columns:1fr}}
 @media(max-width:520px){.form-grid{grid-template-columns:1fr}.cards{gap:8px}.card{padding:12px}.metric{font-size:23px}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -143,9 +146,9 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <!-- MAINTENANCE TAB -->
 <section id="tab-maintenance" class="hidden">
 <div class="panel"><div class="panel-head"><h2 id="maintFormTitle">Log inspection, repair or rechroming</h2></div><div class="panel-body"><form id="maintForm"><input type="hidden" id="editMaintId"><div class="form-grid">
-<div class="field"><label>Date *</label><input id="mDate" type="date" required></div><div class="field"><label>Die ID *</label><select id="mDieId" required onchange="onMaintDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="mRevision" required disabled onchange="onMaintRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="mSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Activity *</label><select id="mType" required><option>Inspection</option><option>Cleaning</option><option>Require Rechroming</option><option>Rechroming sent</option><option>Rechroming received</option><option>Other</option></select></div>
+<div class="field"><label>Date *</label><input id="mDate" type="date" required></div><div class="field"><label>Die ID *</label><select id="mDieId" required onchange="onMaintDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="mRevision" required disabled><option value="">Select Revision…</option></select></div><div class="field"><label>Side Coverage</label><div style="padding:10px;background:#f0f4fa;border:1px solid #ccd5e3;border-radius:8px;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:6px"><span>⚙ Both Sides (Side A &amp; Side B)</span></div></div><div class="field"><label>Activity *</label><select id="mType" required><option>Inspection</option><option>Cleaning</option><option>Require Rechroming</option><option>Rechroming sent</option><option>Rechroming received</option><option>Other</option></select></div>
 <div class="field"><label>Vendor / responsible person</label><input id="mOwner"></div><div class="field"><label>Cost (₹, optional)</label><input id="mCost" type="number" min="0" step="0.01"></div><div class="field"><label>Disposition</label><select id="mDisposition"><option>Hold by QC</option><option>Under Repair</option><option>Ready for use</option><option>Discarded</option></select></div>
-<div class="field wide"><label>Findings / work done / next action *</label><textarea id="mNotes" rows="3" required placeholder="Condition, measurements, defects, due date, etc."></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save maintenance record</button><button class="btn secondary" type="button" onclick="resetMaintForm()">Clear</button></div></form><p class="note">Rechroming is recorded in the history; it does not automatically reset accumulated life. Only reset life after an authorised engineering decision and documented baseline.</p></div></div>
+<div class="field wide"><label>Findings / work done / next action *</label><textarea id="mNotes" rows="3" required placeholder="Condition, measurements, defects, due date, etc."></textarea></div></div><div class="form-actions"><button class="btn" type="submit">Save maintenance record</button><button class="btn secondary" type="button" onclick="resetMaintForm()">Clear</button></div></form><p class="note">Maintenance logged here automatically applies to both Side A and Side B for the selected Die ID &amp; Revision.</p></div></div>
 
 <!-- MAINTENANCE HISTORY (LOG-STYLE VIEW WITH SEARCH & COMPACT WRAP) -->
 <div class="panel">
@@ -339,43 +342,71 @@ function renderAlerts(){
 }
 
 function openDieModal(id, rev, side){
-  let k = makeKey(id, rev, side);
-  let d = db.dies.find(x=>getDieKey(x)===k);
-  if(!d) return;
+  let dieA = db.dies.find(x => x.id === id && (x.revision||'') === (rev||'') && (x.size||'A') === 'A');
+  let dieB = db.dies.find(x => x.id === id && (x.revision||'') === (rev||'') && (x.size||'A') === 'B');
 
-  let st = status(d);
-  let remMetres = Number(d.life) - life(d);
+  let profileName = (dieA || dieB)?.profile || '—';
 
-  $('modalHost').innerHTML=`
-    <div class="modal-backdrop" role="dialog" aria-modal="true">
-      <div class="modal">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-          <div>
-            <h2 style="margin:0">${esc(d.id)}</h2>
-            <span class="sub">Revision: <strong>${esc(d.revision||'—')}</strong> | Side: <strong>Side ${esc(d.size||'A')}</strong></span>
+  function buildSideHtml(d, sideName){
+    if(!d){
+      return `
+        <div class="side-card-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:15px;color:var(--ink)">Side ${sideName}</h3>
+            <span class="status inactive">Not Created</span>
           </div>
+          <p style="font-size:12px;color:var(--muted);margin:10px 0;">Side ${sideName} is not registered in Die Master.</p>
+        </div>
+      `;
+    }
+    let st = status(d);
+    let remMetres = Number(d.life) - life(d);
+    return `
+      <div class="side-card-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;font-size:15px;color:var(--ink)">Side ${sideName}</h3>
           <div>${badge(st)}</div>
         </div>
 
         <div class="detail-grid">
-          <div class="detail-item"><label>Profile / Part</label><strong>${esc(d.profile)}</strong></div>
-          <div class="detail-item"><label>Die Side</label><strong>Side ${esc(d.size||'A')}</strong></div>
           <div class="detail-item"><label>Accumulated Life</label><strong>${num(life(d))} m</strong></div>
           <div class="detail-item"><label>Approved Life</label><strong>${num(d.life)} m</strong></div>
           <div class="detail-item"><label>Remaining Life</label><strong>${num(remMetres)} m</strong></div>
           <div class="detail-item"><label>Base / Start Life</label><strong>${num(d.base||0)} m</strong></div>
         </div>
 
-        <div style="margin-bottom:15px">
-          <label style="font-size:12px;font-weight:700;color:var(--muted)">LIFE CONSUMPTION</label>
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Life Consumption</label>
           <div style="margin-top:4px">${bar(d)}</div>
         </div>
 
-        ${d.notes ? `<div style="margin-bottom:15px"><label style="font-size:12px;font-weight:700;color:var(--muted)">NOTES</label><p style="margin:4px 0 0;font-size:13px">${esc(d.notes)}</p></div>` : ''}
+        ${d.notes ? `<div style="font-size:12px;color:var(--muted);"><strong>Notes:</strong> ${esc(d.notes)}</div>` : ''}
+
+        <div style="margin-top:auto;padding-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn secondary small" onclick="$('modalHost').innerHTML='';editDie('${esc(d.id)}','${esc(d.revision)}','${sideName}')">Edit Side ${sideName}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  $('modalHost').innerHTML=`
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;">
+          <div>
+            <h2 style="margin:0">${esc(id)}</h2>
+            <span class="sub">Revision: <strong>${esc(rev||'—')}</strong> | Profile: <strong>${esc(profileName)}</strong></span>
+          </div>
+          <button class="btn secondary small" onclick="$('modalHost').innerHTML=''">✕ Close</button>
+        </div>
+
+        <div class="modal-sides-container">
+          ${buildSideHtml(dieA, 'A')}
+          ${buildSideHtml(dieB, 'B')}
+        </div>
 
         <div class="modal-actions">
-          <button class="btn secondary" onclick="$('modalHost').innerHTML='';editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit Die</button>
-          <button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log Maintenance</button>
+          <button class="btn secondary" onclick="$('modalHost').innerHTML='';showTab('maintenance');prefillMaint('${esc(id)}','${esc(rev)}')">Log Maintenance (Both Sides)</button>
           <button class="btn" onclick="$('modalHost').innerHTML=''">Close</button>
         </div>
       </div>
@@ -518,7 +549,7 @@ function renderDies(){
   let sortedDies = db.dies.filter(d => (d.id + ' ' + (d.revision||'') + ' ' + d.profile + ' ' + (d.notes||'')).toLowerCase().includes(q))
     .sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
   
-  $('masterTableWrap').innerHTML = sortedDies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${sortedDies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Log maint.</button> <button class="btn danger small" onclick="deleteDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered matching filter.</div>';
+  $('masterTableWrap').innerHTML = sortedDies.length ? `<table><thead><tr><th>Die ID</th><th>Die Revision</th><th>Profile</th><th>Die Side</th><th>Approved life</th><th>Base life</th><th>Running life</th><th>Warn / critical</th><th>Status</th><th>Actions</th></tr></thead><tbody>${sortedDies.map(d=>`<tr><td><strong>${esc(d.id)}</strong></td><td><strong>${esc(d.revision||'—')}</strong></td><td>${esc(d.profile)}</td><td><strong>${esc('Side '+(d.size||'A'))}</strong></td><td>${num(d.life)} m</td><td>${num(d.base)} m</td><td>${num(life(d))} m</td><td>${num(d.warn||db.settings.warn)}% / ${num(d.crit||db.settings.crit)}%</td><td>${badge(status(d))}</td><td><button class="btn secondary small" onclick="editDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Edit</button> <button class="btn secondary small" onclick="showTab('maintenance');prefillMaint('${esc(d.id)}','${esc(d.revision)}')">Log maint.</button> <button class="btn danger small" onclick="deleteDie('${esc(d.id)}','${esc(d.revision)}','${esc(d.size||'A')}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No dies registered matching filter.</div>';
 }
 
 function deleteDie(id, rev, size){
@@ -669,55 +700,27 @@ function onProductionRevisionChange(){
 function onMaintDieIdChange(){
   let selectedId = $('mDieId').value;
   let revSelect = $('mRevision');
-  let sideSelect = $('mSide');
   
   if(!selectedId){
     revSelect.innerHTML = '<option value="">Select Revision…</option>';
     revSelect.disabled = true;
-    sideSelect.innerHTML = '<option value="">Select Side…</option>';
-    sideSelect.disabled = true;
     return;
   }
 
   let matchingRevs = [...new Set(db.dies.filter(d=>d.id===selectedId).map(d=>d.revision))];
   revSelect.innerHTML = '<option value="">Select Revision…</option>' + matchingRevs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
   revSelect.disabled = false;
-  sideSelect.innerHTML = '<option value="">Select Side…</option>';
-  sideSelect.disabled = true;
 
   if(matchingRevs.length===1){
     revSelect.value = matchingRevs[0];
-    onMaintRevisionChange();
   }
 }
 
-function onMaintRevisionChange(){
-  let selectedId = $('mDieId').value;
-  let selectedRev = $('mRevision').value;
-  let sideSelect = $('mSide');
-
-  if(!selectedRev){
-    sideSelect.innerHTML = '<option value="">Select Side…</option>';
-    sideSelect.disabled = true;
-    return;
-  }
-
-  let matchingSides = db.dies.filter(d=>d.id===selectedId && d.revision===selectedRev).map(d=>d.size||'A');
-  sideSelect.innerHTML = '<option value="">Select Side…</option>' + matchingSides.map(s=>`<option value="${esc(s)}">Side ${esc(s)}</option>`).join('');
-  sideSelect.disabled = false;
-
-  if(matchingSides.length===1){
-    sideSelect.value = matchingSides[0];
-  }
-}
-
-function prefillMaint(id, rev, side){
+function prefillMaint(id, rev){
   populateDieIdSelects(true);
   $('mDieId').value = id;
   onMaintDieIdChange();
   $('mRevision').value = rev;
-  onMaintRevisionChange();
-  $('mSide').value = side||'A';
   $('mDate').value = today();
 }
 
@@ -812,8 +815,6 @@ function resetMaintForm(){
   $('mDate').value = today();
   $('mRevision').innerHTML = '<option value="">Select Revision…</option>';
   $('mRevision').disabled = true;
-  $('mSide').innerHTML = '<option value="">Select Side…</option>';
-  $('mSide').disabled = true;
   if($('maintFormTitle')) $('maintFormTitle').textContent = 'Log inspection, repair or rechroming';
 }
 
@@ -827,8 +828,6 @@ function editMaintenance(id){
   $('mDieId').value = m.dieId;
   onMaintDieIdChange();
   $('mRevision').value = m.revision;
-  onMaintRevisionChange();
-  $('mSide').value = m.side || 'A';
   $('mType').value = m.type;
   $('mOwner').value = m.owner || '';
   $('mCost').value = m.cost || '';
@@ -840,32 +839,64 @@ function editMaintenance(id){
 $('maintForm').addEventListener('submit', e => {
   e.preventDefault();
   let editId = $('editMaintId').value;
-  let m = {
-    id: editId || ('MAINT-' + Date.now()),
-    date: $('mDate').value,
-    dieId: $('mDieId').value,
-    revision: $('mRevision').value,
-    side: $('mSide').value,
-    type: $('mType').value,
-    owner: $('mOwner').value.trim(),
-    cost: $('mCost').value ? Number($('mCost').value) : 0,
-    disposition: $('mDisposition').value,
-    notes: $('mNotes').value.trim()
-  };
+  let dieId = $('mDieId').value;
+  let revision = $('mRevision').value;
+  let type = $('mType').value;
+  let owner = $('mOwner').value.trim();
+  let cost = $('mCost').value ? Number($('mCost').value) : 0;
+  let disposition = $('mDisposition').value;
+  let notes = $('mNotes').value.trim();
+  let mDate = $('mDate').value;
 
   if(editId){
-    db.maintenance = db.maintenance.map(x => x.id === editId ? m : x);
-  } else {
-    db.maintenance.unshift(m);
-  }
+    let existingRecord = db.maintenance.find(x => x.id === editId);
+    let targetSide = existingRecord ? existingRecord.side : 'A';
+    let updatedRecord = {
+      id: editId,
+      date: mDate,
+      dieId,
+      revision,
+      side: targetSide,
+      type,
+      owner,
+      cost,
+      disposition,
+      notes
+    };
+    db.maintenance = db.maintenance.map(x => x.id === editId ? updatedRecord : x);
+    
+    let matchingDie = db.dies.find(d => getDieKey(d) === makeKey(dieId, revision, targetSide));
+    if(matchingDie && disposition === 'Under Repair') matchingDie.active = 'Under maintenance';
+    else if(matchingDie && disposition === 'Ready for use' && matchingDie.active === 'Under maintenance') matchingDie.active = 'Active';
 
-  const matchingDie = db.dies.find(d => getDieKey(d) === makeKey(m.dieId, m.revision, m.side));
-  if(matchingDie && m.disposition === 'Under Repair') matchingDie.active = 'Under maintenance';
-  else if(matchingDie && m.disposition === 'Ready for use' && matchingDie.active === 'Under maintenance') matchingDie.active = 'Active';
+  } else {
+    const sidesToAssign = ['A', 'B'];
+    const nowTs = Date.now();
+    
+    sidesToAssign.forEach((side, idx) => {
+      let m = {
+        id: 'MAINT-' + nowTs + '-' + idx,
+        date: mDate,
+        dieId,
+        revision,
+        side,
+        type,
+        owner,
+        cost: idx === 0 ? cost : 0, 
+        disposition,
+        notes
+      };
+      db.maintenance.unshift(m);
+
+      let matchingDie = db.dies.find(d => getDieKey(d) === makeKey(dieId, revision, side));
+      if(matchingDie && disposition === 'Under Repair') matchingDie.active = 'Under maintenance';
+      else if(matchingDie && disposition === 'Ready for use' && matchingDie.active === 'Under maintenance') matchingDie.active = 'Active';
+    });
+  }
 
   resetMaintForm();
   save();
-  alert('Maintenance record saved.');
+  alert('Maintenance record saved for both Side A and Side B.');
 });
 
 function renderMaintenance(){
@@ -963,7 +994,10 @@ function loadDemo(){
     db = {
       dies: [
         {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
+        {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'B', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
         {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
+        {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'B', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
+        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'A', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'},
         {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
       ],
       production: [
@@ -971,7 +1005,8 @@ function loadDemo(){
         {id:'PROD-2', date:today(), dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'P-02', shift:'2nd', length:1200, rejection:30, operator:'Suresh', remarks:'Minor chatter observed'}
       ],
       maintenance: [
-        {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
+        {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'A', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'},
+        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
       ],
       settings: {warn:95, crit:100, popup:'once'}
     };
