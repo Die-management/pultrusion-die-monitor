@@ -277,11 +277,17 @@ function latestMaintenance(d){
 
 function status(d){
   if(d.active === 'Inactive') return 'Inactive';
-  const latest = latestMaintenance(d);
+  let latest = latestMaintenance(d);
   if(latest && latest.disposition === 'Under Repair') return 'Under Repair';
   if(d.active === 'Under maintenance') return 'Under Maintenance';
-  let p = percent(d), c = Number(d.crit||db.settings.crit), w = Number(d.warn||db.settings.warn);
-  return p >= c ? 'Critical' : p >= w ? 'Warning' : 'Normal';
+  
+  let p = percent(d);
+  let c = Number(d.crit || db.settings.crit || 100);
+  let w = Number(d.warn || db.settings.warn || 95);
+
+  if(p >= 100 || p >= c) return 'Critical';
+  if(p >= w) return 'Warning';
+  return 'Normal';
 }
 
 function badge(s){
@@ -290,7 +296,7 @@ function badge(s){
 }
 
 function bar(d){
-  let p = percent(d), color = p>=Number(d.crit||db.settings.crit)?'#c62828':p>=Number(d.warn||db.settings.warn)?'#d99000':'#16834a';
+  let p = percent(d), color = p>=100||p>=Number(d.crit||db.settings.crit)?'#c62828':p>=Number(d.warn||db.settings.warn)?'#d99000':'#16834a';
   return `<div class="bar"><span style="width:${Math.min(100,p)}%;background:${color}"></span></div><small class="sub">${num(p)}%</small>`;
 }
 
@@ -393,8 +399,9 @@ function renderAlerts(){
 }
 
 function openDieModal(id, rev){
-  let sideA = db.dies.find(x => makeKey(x.id, x.revision, 'A') === makeKey(id, rev, 'A'));
-  let sideB = db.dies.find(x => makeKey(x.id, x.revision, 'B') === makeKey(id, rev, 'B'));
+  // FIXED: Explicitly look up Side A and Side B using their exact unique side keys
+  let sideA = db.dies.find(x => makeKey(x.id, x.revision, x.size) === makeKey(id, rev, 'A'));
+  let sideB = db.dies.find(x => makeKey(x.id, x.revision, x.size) === makeKey(id, rev, 'B'));
   let profileName = sideA?.profile || sideB?.profile || '—';
 
   function renderSideCard(sideName, dObj){
@@ -828,7 +835,7 @@ function prefillMaint(id, rev){
 function resetProdForm(){
   $('prodForm').reset();
   $('editProdId').value = '';
-  $('pDate').value = today();
+  $('pDate').value = getYesterdayDate();
   $('pRejection').value = 0;
   $('pDieId').disabled = false;
   $('pRevision').innerHTML = '<option value="">Select Revision…</option>';
@@ -1163,11 +1170,11 @@ function loadDemo(){
     db = {
       dies: [
         {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
-        {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'B', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
+        {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'B', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production data'},
         {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
         {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'B', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
         {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'A', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'},
-        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded automated check'}
+        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
       ],
       production: [
         {id:'PROD-1', date:getYesterdayDate(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'Line-01', shift:'1st', length:4500, rejection:150, operator:'Ramesh', remarks:'Smooth run'},
@@ -1176,7 +1183,7 @@ function loadDemo(){
       ],
       maintenance: [
         {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'A', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'},
-        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wearNotFound'}
+        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
       ],
       settings: {warn:95, crit:100, popup:'once'}
     };
