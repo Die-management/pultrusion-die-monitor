@@ -20,11 +20,16 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 
 /* Grid Layout for Compact Die Cards */
 .die-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:12px;padding:17px}
-.die-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;display:flex;flex-direction:column;gap:6px}
+.die-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;display:flex;flex-direction:column;gap:6px;position:relative}
 .die-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px #15294b15;border-color:var(--blue)}
 .die-card-header{display:flex;justify-content:space-between;align-items:center}
 .die-card-id{font-size:15px;font-weight:800;color:var(--ink)}
 .die-card-rev{font-size:12px;color:var(--muted);font-weight:600}
+
+/* LED Indicator for Yesterday's Running / Non-running Dies */
+.active-led{width:10px;height:10px;background-color:#16834a;border-radius:50%;display:inline-block;box-shadow:0 0 6px #16834a;animation:pulse-led 1.5s infinite}
+.inactive-led{width:10px;height:10px;background-color:#c62828;border-radius:50%;display:inline-block;box-shadow:0 0 6px #c62828}
+@keyframes pulse-led{0%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(22,131,74,0.7)}70%{transform:scale(1);box-shadow:0 0 0 6px rgba(22,131,74,0)}100%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(22,131,74,0)}}
 
 .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #edf0f5;white-space:nowrap}th{background:#f8faff;color:#526078;font-size:11px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}
 .status{display:inline-flex;padding:4px 9px;border-radius:99px;font-weight:800;font-size:11px}.repair{background:#e6eaff;color:#293b8f}.normal{background:#e4f7eb;color:#116536}.warning{background:#fff0d3;color:#8a4b00}.critical{background:#fde7e7;color:#a11b1b}.inactive{background:#e9edf2;color:#596579}
@@ -51,6 +56,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<!-- SheetJS for Excel (.xlsx/.xls) parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="exportCSV()">Export die report (CSV)</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
@@ -141,7 +148,20 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <div class="field"><label>Production date *</label><input type="date" id="pDate" required></div><div class="field"><label>Die ID *</label><select id="pDieId" required onchange="onProductionDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="pRevision" required disabled onchange="onProductionRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="pSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Machine</label><input id="pMachine" placeholder="Machine ID"></div>
 <div class="field"><label>Shift *</label><select id="pShift" required><option>General</option><option>1st</option><option>2nd</option><option>3rd</option></select></div><div class="field"><label>Production length (m) *</label><input id="pLength" type="number" min="0" step="0.01" required placeholder="e.g. 1250"></div><div class="field"><label>Rejection length (m)</label><input id="pRejection" type="number" min="0" step="0.01" value="0" placeholder="e.g. 15"></div><div class="field"><label>Operator / supervisor</label><input id="pOperator"></div>
 <div class="field wide"><label>Remarks / stoppage / quality observation</label><textarea id="pRemarks" rows="2"></textarea></div></div><div class="form-actions"><button class="btn" type="submit" id="prodSubmitBtn">Save production entry</button><button class="btn secondary" type="button" onclick="resetProdForm()">Clear</button></div></form><p class="note">Life increases by the entered metres for the specified Die ID + Revision + Side. For multiple shifts, add one entry per shift.</p></div></div>
-<div class="panel"><div class="panel-head"><h2>Production log</h2><div class="filters"><input id="prodDateFilter" type="date" aria-label="Filter production by date" title="Filter by production date" onchange="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><input id="prodSearch" placeholder="Search die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px"><button class="btn secondary small" onclick="$('prodDateFilter').value='';$('prodSearch').value='';renderProduction()">Clear filters</button><button class="btn secondary small" onclick="exportProductionCSV()">Export production CSV</button></div></div><div class="table-wrap compact-log-wrap" id="productionTable"></div></div>
+<div class="panel">
+  <div class="panel-head">
+    <h2>Production log</h2>
+    <div class="filters">
+      <input id="prodDateFilter" type="date" aria-label="Filter production by date" title="Filter by production date" onchange="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
+      <input id="prodSearch" placeholder="Search die / revision / machine" oninput="renderProduction()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
+      <button class="btn secondary small" onclick="$('prodDateFilter').value='';$('prodSearch').value='';renderProduction()">Clear filters</button>
+      <button class="btn secondary small" onclick="exportProductionCSV()">Export CSV</button>
+      <label class="btn secondary small" for="importProdFile" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">📥 Import Excel / CSV</label>
+      <input id="importProdFile" class="hidden" type="file" accept=".xlsx, .xls, .csv" onchange="importProductionExcel(event)">
+    </div>
+  </div>
+  <div class="table-wrap compact-log-wrap" id="productionTable"></div>
+</div>
 </section>
 
 <!-- MAINTENANCE TAB -->
@@ -282,6 +302,16 @@ function getLastRunLine(dieId, revision, side){
     return matched[0].machine;
   }
   return 'No runs logged';
+}
+
+function isDieRunningYesterday(dieId, revision){
+  let yDate = getYesterdayDate();
+  return db.production.some(p => 
+    (p.date || '').trim() === yDate &&
+    (p.dieId || '').trim().toUpperCase() === (dieId || '').trim().toUpperCase() &&
+    (p.revision || '').trim().toUpperCase() === (revision || '').trim().toUpperCase() &&
+    Number(p.length || 0) > 0
+  );
 }
 
 function showTab(tab){
@@ -426,7 +456,6 @@ function renderDashboard(){
   let totalRejM = db.production.reduce((s,p)=>s+Number(p.rejection||0),0);
   let overallYieldPct = (totalProdM + totalRejM) > 0 ? (totalProdM / (totalProdM + totalRejM) * 100) : 100;
 
-  // Yesterday active dies calculation pulled from daily production
   let yDate = getYesterdayDate();
   let yesterdayEntries = db.production.filter(p => (p.date || '').trim() === yDate);
   let yesterdayUniqueDies = new Set(yesterdayEntries.map(p => `${(p.dieId||'').trim().toUpperCase()}::${(p.revision||'').trim().toUpperCase()}::${(p.side||'A').trim().toUpperCase()}`)).size;
@@ -451,12 +480,11 @@ function renderDashboard(){
     return matchesSearch && st === f;
   }).sort((a,b)=>a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'}));
 
-  // Group by Unique Die ID + Revision for the overview card click
   let groupedMap = {};
   rows.forEach(d => {
     let gKey = `${(d.id||'').trim().toUpperCase()}::${(d.revision||'').trim().toUpperCase()}`;
     if(!groupedMap[gKey]){
-      groupedMap[gKey] = { id: d.id, revision: d.revision, profile: d.profile, statuses: [] };
+      groupedMap[gKey] = { id: d.id, revision: d.revision, profile: d.profile, statuses: [], runningYesterday: isDieRunningYesterday(d.id, d.revision) };
     }
     groupedMap[gKey].statuses.push(status(d));
   });
@@ -473,7 +501,7 @@ function renderDashboard(){
     $('dieGrid').innerHTML = groupedDies.length ? groupedDies.map(g=>`
       <div class="die-card" onclick="openDieModal('${esc(g.id)}','${esc(g.revision)}')">
         <div class="die-card-header">
-          <span class="die-card-id">${esc(g.id)}</span>
+          <span class="die-card-id">${esc(g.id)} <span class="${g.runningYesterday ? 'active-led' : 'inactive-led'}" title="${g.runningYesterday ? 'Running in yesterday production' : 'Not running in yesterday production'}"></span></span>
           <span class="die-card-rev">${esc(g.revision||'—')}</span>
         </div>
         <div style="font-size:12px;color:var(--muted)">${esc(g.profile)}</div>
@@ -817,6 +845,74 @@ $('prodForm').addEventListener('submit', e => {
   resetProdForm();
   save();
 });
+
+function importProductionExcel(e){
+  let file = e.target.files[0];
+  if(!file) return;
+
+  let reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      let data = new Uint8Array(evt.target.result);
+      let workbook = XLSX.read(data, {type: 'array'});
+      let firstSheetName = workbook.SheetNames[0];
+      let worksheet = workbook.Sheets[firstSheetName];
+      let jsonRows = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+
+      if(!jsonRows || jsonRows.length === 0){
+        alert('The uploaded file contains no rows or is incorrectly formatted.');
+        return;
+      }
+
+      let importedCount = 0;
+      let timestamp = Date.now();
+
+      jsonRows.forEach((row, idx) => {
+        let dateVal = row['Date'] || row['date'] || today();
+        let dieId = row['Die ID'] || row['dieId'] || row['DieID'] || '';
+        let revision = row['Revision'] || row['revision'] || '';
+        let sideVal = row['Side'] || row['side'] || 'A';
+        let sideClean = sideVal.toString().replace(/Side\s*/i, '').trim().toUpperCase() || 'A';
+        let machine = row['Machine'] || row['machine'] || '';
+        let shift = row['Shift'] || row['shift'] || 'General';
+        let length = Number(row['Length (m)'] || row['length'] || row['Length'] || 0);
+        let rejection = Number(row['Rejection (m)'] || row['rejection'] || row['Rejection'] || 0);
+        let operator = row['Operator'] || row['operator'] || '';
+        let remarks = row['Remarks'] || row['remarks'] || '';
+
+        if(dieId && length > 0){
+          let newProd = {
+            id: 'PROD-IMP-' + timestamp + '-' + idx,
+            date: dateVal.toString().trim(),
+            dieId: dieId.toString().trim(),
+            revision: revision.toString().trim(),
+            side: sideClean,
+            machine: machine.toString().trim(),
+            shift: shift.toString().trim(),
+            length: length,
+            rejection: rejection,
+            operator: operator.toString().trim(),
+            remarks: remarks.toString().trim()
+          };
+          db.production.unshift(newProd);
+          importedCount++;
+        }
+      });
+
+      if(importedCount > 0){
+        save();
+        alert(`Successfully imported ${importedCount} production entries from file!`);
+      } else {
+        alert('No valid production records found. Ensure columns match: Date, Die ID, Revision, Side, Length (m), etc.');
+      }
+    } catch(err) {
+      console.error(err);
+      alert('Error parsing Excel/CSV file: ' + err.message);
+    }
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
 
 function renderProduction(){
   let q = ($('prodSearch')?.value||'').toLowerCase();
