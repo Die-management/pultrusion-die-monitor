@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pultrusion Die Life Monitor</title>
 <style>
-:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e4e9f1;--blue:#2457c5;--green:#16834a;--amber:#b96b00;--red:#c62828}
+:root{--bg:#e2e8f0;--card:#fff;--ink:#172033;--muted:#667085;--line:#cbd5e1;--blue:#2457c5;--green:#16834a;--amber:#b96b00;--red:#c62828}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px/1.45 Segoe UI,Arial,sans-serif;color:var(--ink)}
 header{background:#142b4a;color:white;padding:22px 28px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
 h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width:1500px;margin:auto;padding:22px}
@@ -47,9 +47,12 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 .yield-progress-good{height:100%;background:#16834a;transition:width 0.3s}
 
 /* Compact Production Log & Log-style Tables */
-.compact-log-wrap{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.compact-log-wrap{max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
 .compact-log-wrap table th{position:sticky;top:0;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
-.compact-log-wrap table th, .compact-log-wrap table td{padding:6px 10px;font-size:12px}
+.compact-log-wrap table th, .compact-log-wrap table td{padding:8px 10px;font-size:12px}
+
+/* Group Header Row Styling */
+.group-header-row td { background: #e2e8f0; font-weight: 800; color: #1e293b; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; padding: 10px 12px; }
 
 @media(max-width:900px){.cards{grid-template-columns:repeat(3,minmax(120px,1fr))}.dual-detail-container{grid-template-columns:1fr}}
 @media(max-width:600px){.cards{grid-template-columns:repeat(2,minmax(120px,1fr))}.form-grid{grid-template-columns:1fr}}
@@ -101,19 +104,18 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
   <div id="dieGrid" class="die-grid"></div>
 </div>
 
-<!-- DAY-WISE PRODUCTION V/S REJECTION YIELD TABLE -->
+<!-- DAY-WISE PRODUCTION V/S REJECTION YIELD TABLE (GROUPED: CURRENT MONTH VS PREVIOUS MONTH) -->
 <div class="panel">
   <div class="panel-head">
     <div>
       <h2>Daily Production vs. Rejection Yield</h2>
-      <span class="sub">Day-wise yield efficiency summary (Metres produced vs rejected)</span>
+      <span class="sub">Grouped by Current Month (Date-wise) & Previous Month (Date-wise)</span>
     </div>
     <div class="filters">
-      <input id="yieldDateFilter" type="date" aria-label="Filter yield by date" title="Filter by date" onchange="renderDayWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
       <select id="yieldDieFilter" onchange="renderDayWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
         <option value="">All Dies</option>
       </select>
-      <button class="btn secondary small" onclick="$('yieldDateFilter').value='';$('yieldDieFilter').value='';renderDayWiseYield()">Clear filters</button>
+      <button class="btn secondary small" onclick="$('yieldDieFilter').value='';renderDayWiseYield()">Clear filter</button>
     </div>
   </div>
   <div class="table-wrap compact-log-wrap" id="dailyYieldTable"></div>
@@ -526,54 +528,102 @@ function populateYieldDieFilter(){
 }
 
 function renderDayWiseYield(){
-  let dateFilter = $('yieldDateFilter')?.value || '';
   let dieFilter = $('yieldDieFilter')?.value || '';
 
-  let dateMap = {};
-  
-  db.production.forEach(p => {
-    if(dateFilter && p.date !== dateFilter) return;
-    if(dieFilter && p.dieId !== dieFilter) return;
+  let currentMonthMap = {};
+  let previousMonthMap = {};
 
-    let d = p.date || 'Unknown';
-    if(!dateMap[d]){
-      dateMap[d] = { totalM: 0, rejM: 0, entries: 0 };
+  let now = new Date();
+  let currYear = now.getFullYear();
+  let currMonth = now.getMonth(); // 0-indexed
+
+  let prevDateObj = new Date(currYear, currMonth - 1, 1);
+  let prevYear = prevDateObj.getFullYear();
+  let prevMonth = prevDateObj.getMonth();
+
+  function formatMonthName(y, m){
+    let d = new Date(y, m, 1);
+    return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  }
+
+  let currentMonthTitle = formatMonthName(currYear, currMonth);
+  let previousMonthTitle = formatMonthName(prevYear, prevMonth);
+
+  db.production.forEach(p => {
+    if(dieFilter && p.dieId !== dieFilter) return;
+    if(!p.date) return;
+
+    let pDate = new Date(p.date);
+    if(isNaN(pDate.getTime())) return;
+
+    let pYear = pDate.getFullYear();
+    let pMonth = pDate.getMonth();
+
+    let d = p.date;
+    if(pYear === currYear && pMonth === currMonth){
+      if(!currentMonthMap[d]) currentMonthMap[d] = { totalM: 0, rejM: 0, entries: 0 };
+      currentMonthMap[d].totalM += Number(p.length || 0);
+      currentMonthMap[d].rejM += Number(p.rejection || 0);
+      currentMonthMap[d].entries += 1;
+    } else if(pYear === prevYear && pMonth === prevMonth){
+      if(!previousMonthMap[d]) previousMonthMap[d] = { totalM: 0, rejM: 0, entries: 0 };
+      previousMonthMap[d].totalM += Number(p.length || 0);
+      previousMonthMap[d].rejM += Number(p.rejection || 0);
+      previousMonthMap[d].entries += 1;
     }
-    dateMap[d].totalM += Number(p.length || 0);
-    dateMap[d].rejM += Number(p.rejection || 0);
-    dateMap[d].entries += 1;
   });
 
-  let sortedDates = Object.keys(dateMap).sort((a,b) => b.localeCompare(a));
+  let currentDates = Object.keys(currentMonthMap).sort((a,b) => b.localeCompare(a));
+  let previousDates = Object.keys(previousMonthMap).sort((a,b) => b.localeCompare(a));
 
-  if(!sortedDates.length){
-    $('dailyYieldTable').innerHTML = '<div class="empty">No daily production matching the selected filters.</div>';
+  if(!currentDates.length && !previousDates.length){
+    $('dailyYieldTable').innerHTML = '<div class="empty">No daily production matching the selected filters for current or previous month.</div>';
     return;
   }
 
-  let rowsHtml = sortedDates.map(d => {
-    let item = dateMap[d];
-    let grossInput = item.totalM + item.rejM;
-    let yieldPct = grossInput > 0 ? (item.totalM / grossInput * 100) : 100;
-    let rejPct = grossInput > 0 ? (item.rejM / grossInput * 100) : 0;
-    let barColor = yieldPct >= 95 ? '#16834a' : yieldPct >= 90 ? '#b96b00' : '#c62828';
+  function buildRows(datesMap, datesArr){
+    return datesArr.map(d => {
+      let item = datesMap[d];
+      let grossInput = item.totalM + item.rejM;
+      let yieldPct = grossInput > 0 ? (item.totalM / grossInput * 100) : 100;
+      let rejPct = grossInput > 0 ? (item.rejM / grossInput * 100) : 0;
+      let barColor = yieldPct >= 95 ? '#16834a' : yieldPct >= 90 ? '#b96b00' : '#c62828';
 
-    return `<tr>
-      <td><strong>${esc(d)}</strong></td>
-      <td><strong>${num(item.totalM)} m</strong></td>
-      <td><strong style="color:${item.rejM > 0 ? 'var(--red)' : 'inherit'}">${num(item.rejM)} m</strong></td>
-      <td><strong style="color:${rejPct > 5 ? 'var(--red)' : 'var(--muted)'}">${num(rejPct)}%</strong></td>
-      <td><strong style="color:${barColor}">${num(yieldPct)}%</strong></td>
-      <td>
-        <div class="yield-bar-wrap">
-          <div class="yield-progress-bar" title="Good Yield: ${num(yieldPct)}% | Rejection: ${num(rejPct)}%">
-            <div class="yield-progress-good" style="width:${yieldPct}%"></div>
+      return `<tr>
+        <td style="padding-left: 20px;"><strong>${esc(d)}</strong></td>
+        <td><strong>${num(item.totalM)} m</strong></td>
+        <td><strong style="color:${item.rejM > 0 ? 'var(--red)' : 'inherit'}">${num(item.rejM)} m</strong></td>
+        <td><strong style="color:${rejPct > 5 ? 'var(--red)' : 'var(--muted)'}">${num(rejPct)}%</strong></td>
+        <td><strong style="color:${barColor}">${num(yieldPct)}%</strong></td>
+        <td>
+          <div class="yield-bar-wrap">
+            <div class="yield-progress-bar" title="Good Yield: ${num(yieldPct)}% | Rejection: ${num(rejPct)}%">
+              <div class="yield-progress-good" style="width:${yieldPct}%"></div>
+            </div>
           </div>
-        </div>
-      </td>
-      <td>${item.entries} shifts/logs</td>
-    </tr>`;
-  }).join('');
+        </td>
+        <td>${item.entries} shifts/logs</td>
+      </tr>`;
+    }).join('');
+  }
+
+  let htmlSections = '';
+
+  // Current Month Section
+  htmlSections += `<tr class="group-header-row"><td colspan="7">🟢 Current Month: ${currentMonthTitle}</td></tr>`;
+  if(currentDates.length > 0){
+    htmlSections += buildRows(currentMonthMap, currentDates);
+  } else {
+    htmlSections += `<tr><td colspan="7" style="text-align:center; color:var(--muted); font-style:italic; padding: 12px;">No production records for current month</td></tr>`;
+  }
+
+  // Previous Month Section
+  htmlSections += `<tr class="group-header-row"><td colspan="7">🔵 Previous Month: ${previousMonthTitle}</td></tr>`;
+  if(previousDates.length > 0){
+    htmlSections += buildRows(previousMonthMap, previousDates);
+  } else {
+    htmlSections += `<tr><td colspan="7" style="text-align:center; color:var(--muted); font-style:italic; padding: 12px;">No production records for previous month</td></tr>`;
+  }
 
   $('dailyYieldTable').innerHTML = `
     <table>
@@ -589,7 +639,7 @@ function renderDayWiseYield(){
         </tr>
       </thead>
       <tbody>
-        ${rowsHtml}
+        ${htmlSections}
       </tbody>
     </table>
   `;
@@ -1117,7 +1167,7 @@ function loadDemo(){
         {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'A', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
         {id:'DIE-10', revision:'Rev 00', profile:'Rod 12mm', size:'B', life:15000, warn:95, crit:100, base:12500, active:'Under maintenance', notes:'Currently under repair in tool room'},
         {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'A', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'},
-        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
+        {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded automated check'}
       ],
       production: [
         {id:'PROD-1', date:getYesterdayDate(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'Line-01', shift:'1st', length:4500, rejection:150, operator:'Ramesh', remarks:'Smooth run'},
@@ -1126,7 +1176,7 @@ function loadDemo(){
       ],
       maintenance: [
         {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'A', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'},
-        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
+        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wearNotFound'}
       ],
       settings: {warn:95, crit:100, popup:'once'}
     };
