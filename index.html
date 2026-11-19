@@ -63,7 +63,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="exportCSV()">Export die report (CSV)</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
+<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="openDieReportOptions()">Export die report</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
 <div class="wrap">
 <div id="alerts"></div>
 <nav class="tabs">
@@ -137,7 +137,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
     <div class="filters">
       <input id="masterSearch" placeholder="Search die / revision / profile…" oninput="renderDies()" style="padding:9px;border:1px solid #ccd5e3;border-radius:8px">
       <button class="btn secondary small" onclick="$('masterSearch').value='';renderDies()">Clear filter</button>
-      <button class="btn secondary small" onclick="exportCSV()">Export CSV</button>
+      <button class="btn secondary small" onclick="openDieReportOptions()">Export report</button>
     </div>
   </div>
   <div class="table-wrap compact-log-wrap" id="masterTableWrap"></div>
@@ -1129,17 +1129,120 @@ function importBackup(e){
   reader.readAsText(file);
 }
 
-function exportCSV(){
-  let csv = 'Die ID,Revision,Side,Profile,Approved Life (m),Base Life (m),Running Life (m),Status\n';
-  db.dies.forEach(d=>{
-    csv += `"${d.id}","${d.revision||''}","Side ${d.size||'A'}","${d.profile}",${d.life},${d.base||0},${life(d)},"${status(d)}"\n`;
-  });
-  let blob = new Blob([csv], {type:'text/csv'});
-  let a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'die_master_report_' + today() + '.csv';
-  a.click();
+function openDieReportOptions(){
+  $('modalHost').innerHTML = `
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal" style="max-width:520px">
+        <h2>Export die report</h2>
+        <p>Select a date. Die life and status will be calculated using production and maintenance records up to that date.</p>
+        <div class="field">
+          <label for="dieReportDate">Report date (up to and including)</label>
+          <input type="date" id="dieReportDate" max="${today()}" value="${today()}">
+        </div>
+        <div class="modal-actions" style="justify-content:space-between">
+          <button class="btn secondary" onclick="$('modalHost').innerHTML=''">Cancel</button>
+          <button class="btn secondary" onclick="exportDiesAsOfDate()">Export all dies</button>
+          <button class="btn" onclick="exportRunningDiesOnDate()">Export running dies on date</button>
+        </div>
+      </div>
+    </div>`;
 }
+
+function csvCell(value){
+  return '"' + String(value ?? '').replace(/"/g, '""') + '"';
+}
+
+function downloadReportCSV(csv, filename){
+  const blob = new Blob(["\uFEFF" + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function getDieLifeAsOf(d, reportDate){
+  const key = getDieKey(d);
+  return Number(d.base || 0) + db.production
+    .filter(p => makeKey(p.dieId, p.revision, p.side) === key && (p.date || '') <= reportDate)
+    .reduce((sum, p) => sum + Number(p.length || 0), 0);
+}
+
+function getDieRunningStatusAsOf(d, reportDate){
+  const key = getDieKey(d);
+  const ranOnDate = db.production.some(p =>
+    makeKey(p.dieId, p.revision, p.side) === key &&
+    (p.date || '') === reportDate &&
+    Number(p.length || 0) > 0
+  );
+  return ranOnDate ? 'Running' : 'Non Running';
+}
+
+function getDieStatusAsOf(d, reportDate, runningLife){
+  if(d.active === 'Inactive') return 'Inactive';
+  const maintenance = db.maintenance
+    .filter(m => makeKey(m.dieId, m.revision, m.side) === getDieKey(d) && (m.date || '') <= reportDate)
+    .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  const latest = maintenance[0];
+  if(latest && latest.disposition === 'Under Repair') return 'Under Repair';
+  if(d.active === 'Under maintenance') return 'Under Maintenance';
+  const pct = Number(d.life) > 0 ? runningLife / Number(d.life) * 100 : 0;
+  const critical = Number(d.crit || db.settings.crit || 100);
+  const warning = Number(d.warn || db.settings.warn || 95);
+  if(pct >= 100 || pct >= critical) return 'Critical';
+  if(pct >= warning) return 'Warning';
+  return 'Normal';
+}
+
+function getReportDate(){
+  const date = $('dieReportDate')?.value || '';
+  if(!date){ alert('Please select a report date.'); return null; }
+  if(date > today()){ alert('Report date cannot be in the future.'); return null; }
+  return date;
+}
+
+function exportDiesAsOfDate(){
+  const reportDate = getReportDate();
+  if(!reportDate) return;
+  const headers = ['Report Date','Die ID','Revision','Side','Profile','Approved Life (m)','Base Life (m)','Cumulative Running Life Till Date (m)','Remaining Life (m)','Life Used (%)','Running Status as of Date','Die Life Status as of Date'];
+  const rows = db.dies.map(d => {
+    const used = getDieLifeAsOf(d, reportDate);
+    const approved = Number(d.life || 0);
+    return [reportDate,d.id,d.revision || '', 'Side ' + (d.size || 'A'),d.profile,approved,Number(d.base || 0),used,approved-used,approved ? (used/approved*100).toFixed(2) : 0,getDieRunningStatusAsOf(d,reportDate),getDieStatusAsOf(d,reportDate,used)];
+  });
+  const csv = [headers,...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+  downloadReportCSV(csv, 'die_report_till_' + reportDate + '.csv');
+  $('modalHost').innerHTML = '';
+}
+
+function exportRunningDiesOnDate(){
+  const reportDate = getReportDate();
+  if(!reportDate) return;
+  const running = db.production.filter(p => (p.date || '') === reportDate && Number(p.length || 0) > 0);
+  const grouped = new Map();
+  running.forEach(p => {
+    const key = makeKey(p.dieId,p.revision,p.side);
+    if(!grouped.has(key)) grouped.set(key,{dieId:p.dieId,revision:p.revision || '',side:p.side || 'A',machines:new Set(),shifts:new Set(),length:0,entries:0});
+    const item = grouped.get(key);
+    if(p.machine) item.machines.add(p.machine);
+    if(p.shift) item.shifts.add(p.shift);
+    item.length += Number(p.length || 0);
+    item.entries += 1;
+  });
+  const headers = ['Running Date','Die ID','Revision','Side','Profile','Machine(s)','Shift(s)','Production Length on Date (m)','Cumulative Life Till Date (m)','Approved Life (m)','Running Status as of Date','Die Life Status as of Date','Production Entries'];
+  const rows = [...grouped.values()].map(item => {
+    const die = db.dies.find(d => makeKey(d.id,d.revision,d.size) === makeKey(item.dieId,item.revision,item.side));
+    const cumulative = die ? getDieLifeAsOf(die,reportDate) : db.production.filter(p => makeKey(p.dieId,p.revision,p.side) === makeKey(item.dieId,item.revision,item.side) && (p.date || '') <= reportDate).reduce((sum,p)=>sum+Number(p.length||0),0);
+    return [reportDate,item.dieId,item.revision,'Side '+item.side,die?.profile || '',[...item.machines].join('; '),[...item.shifts].join('; '),item.length,cumulative,die?.life ?? '','Running',die ? getDieStatusAsOf(die,reportDate,cumulative) : 'Not in Die Master',item.entries];
+  });
+  const csv = [headers,...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+  downloadReportCSV(csv, 'running_dies_' + reportDate + '.csv');
+  $('modalHost').innerHTML = '';
+  if(!rows.length) alert('No dies have production entries with length greater than zero on ' + reportDate + '. An empty report has been exported.');
+}
+
+function exportCSV(){ openDieReportOptions(); }
 
 function exportProductionCSV(){
   let csv = 'Date,Die ID,Revision,Side,Machine,Shift,Length (m),Rejection (m),Operator,Remarks\n';
