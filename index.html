@@ -120,6 +120,26 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
   </div>
   <div class="table-wrap compact-log-wrap" id="dailyYieldTable"></div>
 </div>
+
+<!-- MONTH-WISE PRODUCTION V/S REJECTION YIELD TABLE -->
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Month-Wise Production vs. Rejection Yield</h2>
+      <span class="sub">Monthly aggregated production, rejection, and yield efficiency summary</span>
+    </div>
+    <div class="filters">
+      <select id="monthYieldDieFilter" onchange="renderMonthWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <option value="">All Dies</option>
+      </select>
+      <select id="monthYieldYearFilter" onchange="renderMonthWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <option value="">All Years</option>
+      </select>
+      <button class="btn secondary small" onclick="$('monthYieldDieFilter').value='';$('monthYieldYearFilter').value='';renderMonthWiseYield()">Clear filter</button>
+    </div>
+  </div>
+  <div class="table-wrap compact-log-wrap" id="monthlyYieldTable"></div>
+</div>
 </section>
 
 <!-- DIE MASTER TAB -->
@@ -522,7 +542,9 @@ function renderDashboard(){
   }
 
   populateYieldDieFilter();
+  populateMonthYieldFilters();
   renderDayWiseYield();
+  renderMonthWiseYield();
 }
 
 function populateYieldDieFilter(){
@@ -532,6 +554,136 @@ function populateYieldDieFilter(){
   let uniqueDieIds = [...new Set(db.dies.map(d=>d.id))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
   dieSelect.innerHTML = '<option value="">All Dies</option>' + uniqueDieIds.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
   if(uniqueDieIds.includes(prev)) dieSelect.value = prev;
+}
+
+function populateMonthYieldFilters(){
+  let dieSelect = $('monthYieldDieFilter');
+  if(dieSelect){
+    let prevDie = dieSelect.value;
+    let uniqueDieIds = [...new Set([...db.dies.map(d=>d.id), ...db.production.map(p=>p.dieId)].filter(Boolean))].sort((a,b)=>a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+    dieSelect.innerHTML = '<option value="">All Dies</option>' + uniqueDieIds.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    if(uniqueDieIds.includes(prevDie)) dieSelect.value = prevDie;
+  }
+
+  let yearSelect = $('monthYieldYearFilter');
+  if(yearSelect){
+    let prevYear = yearSelect.value;
+    let uniqueYears = [...new Set(db.production.map(p => (p.date || '').slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort((a,b) => b.localeCompare(a));
+    yearSelect.innerHTML = '<option value="">All Years</option>' + uniqueYears.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join('');
+    if(uniqueYears.includes(prevYear)) yearSelect.value = prevYear;
+  }
+}
+
+function renderMonthWiseYield(){
+  let container = $('monthlyYieldTable');
+  if(!container) return;
+
+  let dieFilter = $('monthYieldDieFilter')?.value || '';
+  let yearFilter = $('monthYieldYearFilter')?.value || '';
+  let monthMap = {};
+
+  db.production.forEach(p => {
+    if(dieFilter && p.dieId !== dieFilter) return;
+    if(!p.date || p.date.length < 7) return;
+
+    let ym = p.date.slice(0, 7); // YYYY-MM
+    let y = ym.slice(0, 4);
+    if(!/^\d{4}-\d{2}$/.test(ym)) return;
+    if(yearFilter && y !== yearFilter) return;
+
+    if(!monthMap[ym]){
+      monthMap[ym] = { totalM: 0, rejM: 0, entries: 0, activeDays: new Set(), dies: new Set() };
+    }
+    monthMap[ym].totalM += Number(p.length || 0);
+    monthMap[ym].rejM += Number(p.rejection || 0);
+    monthMap[ym].entries += 1;
+    monthMap[ym].activeDays.add(p.date);
+    if(p.dieId) monthMap[ym].dies.add(p.dieId);
+  });
+
+  let sortedMonths = Object.keys(monthMap).sort((a,b) => b.localeCompare(a));
+
+  if(!sortedMonths.length){
+    container.innerHTML = '<div class="empty">No monthly production records matching the selected filters.</div>';
+    return;
+  }
+
+  let grandGood = 0;
+  let grandRej = 0;
+  let grandEntries = 0;
+
+  let rowsHtml = sortedMonths.map(ym => {
+    let item = monthMap[ym];
+    let [yr, mo] = ym.split('-').map(Number);
+    let label = new Date(yr, mo - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+    let grossInput = item.totalM + item.rejM;
+    let yieldPct = grossInput > 0 ? (item.totalM / grossInput * 100) : 100;
+    let rejPct = grossInput > 0 ? (item.rejM / grossInput * 100) : 0;
+    let barColor = yieldPct >= 95 ? '#16834a' : yieldPct >= 90 ? '#b96b00' : '#c62828';
+
+    grandGood += item.totalM;
+    grandRej += item.rejM;
+    grandEntries += item.entries;
+
+    return `<tr>
+      <td><strong>${esc(label)}</strong> <span class="sub">(${esc(ym)})</span></td>
+      <td><strong>${num(item.totalM)} m</strong></td>
+      <td><strong style="color:${item.rejM > 0 ? 'var(--red)' : 'inherit'}">${num(item.rejM)} m</strong></td>
+      <td><strong>${num(grossInput)} m</strong></td>
+      <td><strong style="color:${rejPct > 5 ? 'var(--red)' : 'var(--muted)'}">${num(rejPct)}%</strong></td>
+      <td><strong style="color:${barColor}">${num(yieldPct)}%</strong></td>
+      <td>
+        <div class="yield-bar-wrap">
+          <div class="yield-progress-bar" title="Good Yield: ${num(yieldPct)}% | Rejection: ${num(rejPct)}%">
+            <div class="yield-progress-good" style="width:${yieldPct}%"></div>
+          </div>
+        </div>
+      </td>
+      <td>${item.activeDays.size} days / ${item.entries} logs</td>
+    </tr>`;
+  }).join('');
+
+  let grandGross = grandGood + grandRej;
+  let grandYieldPct = grandGross > 0 ? (grandGood / grandGross * 100) : 100;
+  let grandRejPct = grandGross > 0 ? (grandRej / grandGross * 100) : 0;
+  let grandColor = grandYieldPct >= 95 ? '#16834a' : grandYieldPct >= 90 ? '#b96b00' : '#c62828';
+
+  rowsHtml += `<tr style="background:#f8faff;font-weight:800;border-top:2px solid var(--line)">
+    <td>Total (${sortedMonths.length} ${sortedMonths.length === 1 ? 'Month' : 'Months'})</td>
+    <td>${num(grandGood)} m</td>
+    <td style="color:${grandRej > 0 ? 'var(--red)' : 'inherit'}">${num(grandRej)} m</td>
+    <td>${num(grandGross)} m</td>
+    <td style="color:${grandRejPct > 5 ? 'var(--red)' : 'var(--muted)'}">${num(grandRejPct)}%</td>
+    <td style="color:${grandColor}">${num(grandYieldPct)}%</td>
+    <td>
+      <div class="yield-bar-wrap">
+        <div class="yield-progress-bar">
+          <div class="yield-progress-good" style="width:${grandYieldPct}%"></div>
+        </div>
+      </div>
+    </td>
+    <td>${grandEntries} total logs</td>
+  </tr>`;
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Gross Good Production (m)</th>
+          <th>Rejection (m)</th>
+          <th>Total Output (m)</th>
+          <th>Rejection %</th>
+          <th>Yield Efficiency %</th>
+          <th style="width:200px">Production vs Rejection Yield</th>
+          <th>Activity</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderDayWiseYield(){
