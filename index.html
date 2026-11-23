@@ -54,7 +54,25 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 /* Group Header Row Styling */
 .group-header-row td { background: #e2e8f0; font-weight: 800; color: #1e293b; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; padding: 10px 12px; }
 
-@media(max-width:900px){.cards{grid-template-columns:repeat(3,minmax(120px,1fr))}.dual-detail-container{grid-template-columns:1fr}}
+/* Machine Run & Downtime Line Cards (L-1 to L-8) */
+.line-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.line-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:#f8faff;display:flex;flex-direction:column;gap:10px}
+.line-card.stopped-line{border-color:#f3b7b7;background:#fff8f8}
+.line-card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.line-title{font-size:15px;font-weight:800;color:var(--ink)}
+.stream-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stream-box{border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:#fff;text-align:center}
+.stream-box.s-stopped{border-color:#fca5a5;background:#fef2f2}
+.stream-label{font-size:11px;font-weight:800;color:#475569;margin-bottom:4px}
+.oee-pill{display:inline-flex;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:800}
+.oee-high{background:#e4f7eb;color:#116536}
+.oee-mid{background:#fff0d3;color:#8a4b00}
+.oee-low{background:#fde7e7;color:#a11b1b}
+.oee-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:12px;margin-bottom:14px}
+.oee-line-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.oee-mini-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#f8faff;display:flex;flex-direction:column;gap:4px}
+
+@media(max-width:900px){.cards{grid-template-columns:repeat(3,minmax(120px,1fr))}.dual-detail-container{grid-template-columns:1fr}.oee-kpi-grid{grid-template-columns:repeat(2,minmax(130px,1fr))}}
 @media(max-width:600px){.cards{grid-template-columns:repeat(2,minmax(120px,1fr))}.form-grid{grid-template-columns:1fr}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -63,7 +81,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="openDieReportOptions()">Export die report</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
+<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance • Line OEE | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="openDieReportOptions()">Export die report</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
 <div class="wrap">
 <div id="alerts"></div>
 <nav class="tabs">
@@ -71,7 +89,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <button class="tab" data-tab="dies" onclick="showTab('dies')">Die master</button>
 <button class="tab" data-tab="production" onclick="showTab('production')">Daily production</button>
 <button class="tab" data-tab="maintenance" onclick="showTab('maintenance')">Maintenance / rechroming</button>
-<button class="tab" data-tab="settings" onclick="handleTabClick('settings')">Settings & backup</button>
+<button class="tab" data-tab="machinerun" onclick="showTab('machinerun')">Machine Run &amp; Downtime</button>
+<button class="tab" data-tab="settings" onclick="handleTabClick('settings')">Settings &amp; backup</button>
 </nav>
 
 <!-- DASHBOARD TAB -->
@@ -104,12 +123,42 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
   <div id="dieGrid" class="die-grid"></div>
 </div>
 
+<!-- MINIMISED OEE SECTION ON DASHBOARD (OEE BOXES + VIEW FILTER) -->
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>OEE Overview (L-1 to L-8)</h2>
+      <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams/line) • Select view filter to expand detailed tables</span>
+    </div>
+    <div class="filters">
+      <select id="oeeViewModeFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px;font-weight:700;color:var(--blue)">
+        <option value="summary">OEE Summary Boxes Only</option>
+        <option value="daily">Machine-Wise Daily OEE</option>
+        <option value="monthly">Machine-Wise Monthly OEE</option>
+        <option value="overall">Overall Monthly OEE</option>
+      </select>
+      <select id="oeeLineFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <option value="">All Lines (L-1 to L-8)</option>
+      </select>
+      <input type="date" id="oeeDateFilter" onchange="renderOeeDashboard()" title="Filter by Date" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+      <select id="oeeMonthFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <option value="">All Months</option>
+      </select>
+      <button class="btn secondary small" onclick="$('oeeViewModeFilter').value='summary';$('oeeLineFilter').value='';$('oeeDateFilter').value='';$('oeeMonthFilter').value='';renderOeeDashboard()">Reset</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div id="oeeSummaryBoxesWrap"></div>
+    <div id="oeeDetailedTableWrap" class="table-wrap compact-log-wrap hidden" style="margin-top:14px"></div>
+  </div>
+</div>
+
 <!-- DAY-WISE PRODUCTION V/S REJECTION YIELD TABLE (GROUPED: CURRENT MONTH VS PREVIOUS MONTH) -->
 <div class="panel">
   <div class="panel-head">
     <div>
       <h2>Daily Production vs. Rejection Yield</h2>
-      <span class="sub">Grouped by Current Month (Date-wise) & Previous Month (Date-wise)</span>
+      <span class="sub">Grouped by Current Month (Date-wise) &amp; Previous Month (Date-wise)</span>
     </div>
     <div class="filters">
       <select id="yieldDieFilter" onchange="renderDayWiseYield()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
@@ -167,7 +216,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <!-- PRODUCTION TAB -->
 <section id="tab-production" class="hidden">
 <div class="panel"><div class="panel-head"><h2 id="prodFormTitle">Record daily production</h2><span class="sub" id="prodFormSubtitle">Enter net running length for each die ID, revision, machine, and shift</span></div><div class="panel-body"><form id="prodForm"><input type="hidden" id="editProdId"><div class="form-grid">
-<div class="field"><label>Production date *</label><input type="date" id="pDate" required></div><div class="field"><label>Die ID *</label><select id="pDieId" required onchange="onProductionDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="pRevision" required disabled onchange="onProductionRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="pSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Machine</label><input id="pMachine" placeholder="Machine ID"></div>
+<div class="field"><label>Production date *</label><input type="date" id="pDate" required></div><div class="field"><label>Die ID *</label><select id="pDieId" required onchange="onProductionDieIdChange()"><option value="">Select Die ID…</option></select></div><div class="field"><label>Die Revision *</label><select id="pRevision" required disabled onchange="onProductionRevisionChange()"><option value="">Select Revision…</option></select></div><div class="field"><label>Side *</label><select id="pSide" required disabled><option value="">Select Side…</option></select></div><div class="field"><label>Machine</label><input id="pMachine" placeholder="e.g. L-1 or Line-01"></div>
 <div class="field"><label>Shift *</label><select id="pShift" required><option>General</option><option>1st</option><option>2nd</option><option>3rd</option></select></div><div class="field"><label>Production length (m) *</label><input id="pLength" type="number" min="0" step="0.01" required placeholder="e.g. 1250"></div><div class="field"><label>Rejection length (m)</label><input id="pRejection" type="number" min="0" step="0.01" value="0" placeholder="e.g. 15"></div><div class="field"><label>Operator / supervisor</label><input id="pOperator"></div>
 <div class="field wide"><label>Remarks / stoppage / quality observation</label><textarea id="pRemarks" rows="2"></textarea></div></div><div class="form-actions"><button class="btn" type="submit" id="prodSubmitBtn">Save production entry</button><button class="btn secondary" type="button" onclick="resetProdForm()">Clear</button></div></form><p class="note">Life increases by the entered metres for the specified Die ID + Revision + Side. For multiple shifts, add one entry per shift.</p></div></div>
 <div class="panel">
@@ -207,10 +256,54 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 </div>
 </section>
 
+<!-- MACHINE RUN & DOWNTIME TAB -->
+<section id="tab-machinerun" class="hidden">
+  <!-- LIVE LINE & STREAM CONTROL MATRIX (L-1 TO L-8, STREAMS S-1 TO S-3, LINE SPEED) -->
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Line &amp; Stream Live Status Matrix (L-1 to L-8)</h2>
+        <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams) • Set line speed (m/min per stream) and mark individual streams S-1, S-2, S-3 or entire lines Running / Stopped</span>
+      </div>
+      <div class="filters">
+        <button class="btn secondary small" onclick="saveLineMatrixSnapshot()">💾 Save Current Status Snapshot</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div id="lineMatrixGrid" class="line-grid"></div>
+    </div>
+  </div>
+
+  <!-- MACHINE RUN & DOWNTIME LOG + EXCEL/CSV IMPORT -->
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Machine Run &amp; Downtime Log</h2>
+        <span class="sub">Click Edit on any entry to modify timestamps, stream, speed, downtime, or reason • Upload Excel/CSV</span>
+      </div>
+      <div class="filters">
+        <input type="date" id="mrFilterDate" onchange="renderMachineRunLog()" style="padding:8px;border:1px solid #ccd5e3;border-radius:8px">
+        <select id="mrFilterLine" onchange="renderMachineRunLog()" style="padding:8px;border:1px solid #ccd5e3;border-radius:8px">
+          <option value="">All Lines</option>
+          <option value="L-1">L-1</option><option value="L-2">L-2</option><option value="L-3">L-3</option><option value="L-4">L-4</option>
+          <option value="L-5">L-5</option><option value="L-6">L-6</option><option value="L-7">L-7</option><option value="L-8">L-8</option>
+        </select>
+        <input id="mrSearch" placeholder="Search reason / status / stream…" oninput="renderMachineRunLog()" style="padding:8px;border:1px solid #ccd5e3;border-radius:8px">
+        <button class="btn secondary small" onclick="$('mrFilterDate').value='';$('mrFilterLine').value='';$('mrSearch').value='';renderMachineRunLog()">Clear</button>
+        <button class="btn secondary small" onclick="exportMachineRunCSV()">Export CSV</button>
+        <label class="btn secondary small" for="importMrFile" style="cursor:pointer;display:inline-flex;align-items:center;margin:0">📥 Upload Excel / CSV</label>
+        <input id="importMrFile" class="hidden" type="file" accept=".xlsx, .xls, .csv" onchange="importMachineRunFile(event)">
+      </div>
+    </div>
+    <div class="table-wrap compact-log-wrap" id="machineRunTableWrap"></div>
+  </div>
+</section>
+
 <!-- SETTINGS TAB -->
 <section id="tab-settings" class="hidden">
 <div class="panel"><div class="panel-head"><h2>Alert settings</h2></div><div class="panel-body"><div class="form-grid">
 <div class="field"><label>Default warning threshold (%)</label><input id="sWarn" type="number" min="1" max="100" value="95"></div><div class="field"><label>Default critical threshold (%)</label><input id="sCrit" type="number" min="1" max="200" value="100"></div><div class="field"><label>Popup behaviour</label><select id="sPopup"><option value="once">Show once per page session per die</option><option value="always">Show whenever critical dies exist</option><option value="off">Dashboard banner only</option></select></div>
+<div class="field"><label>Daily 5:00 PM auto-backup</label><select id="sAutoBackup"><option value="on">Enabled (Daily at 17:00)</option><option value="off">Disabled</option></select><small class="sub" id="autoBackupStatusText">Checks every 30s while tab is open</small></div>
 </div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Data is saved in local browser storage &amp; Firebase. Download regular backups.</p></div></div>
 <div class="panel"><div class="panel-head"><h2>Demo data</h2></div><div class="panel-body"><p>Load sample dies and production to explore the dashboard. This will replace current data.</p><button class="btn" onclick="loadDemo()">Load / reset to demo data</button> <button class="btn danger" onclick="clearAll()">Clear all saved data</button></div></div>
 </section>
@@ -232,7 +325,35 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const dbCloud = firebase.firestore();
 
-let db = {dies:[], production:[], maintenance:[], settings:{warn:95, crit:100, popup:'once'}};
+const LINES = ['L-1', 'L-2', 'L-3', 'L-4', 'L-5', 'L-6', 'L-7', 'L-8'];
+const STREAMS = ['S-1', 'S-2', 'S-3'];
+const PLANNED_MINS_PER_DAY = 1440;
+const PLANNED_STREAM_MINS_PER_DAY = PLANNED_MINS_PER_DAY * STREAMS.length; // 4320 stream-mins/day per line
+
+function createDefaultLineStates(){
+  const obj = {};
+  LINES.forEach(line => {
+    obj[line] = {
+      status: 'Running',
+      speed: 1.0, // m/min
+      streams: { 'S-1': 'Running', 'S-2': 'Running', 'S-3': 'Running' },
+      streamStopTimes: { 'S-1': '', 'S-2': '', 'S-3': '' },
+      stopDateTime: '',
+      resumeDateTime: '',
+      reason: ''
+    };
+  });
+  return obj;
+}
+
+let db = {
+  dies:[],
+  production:[],
+  maintenance:[],
+  machineRunLogs:[],
+  lineStates: createDefaultLineStates(),
+  settings:{warn:95, crit:100, popup:'once', autoBackup5pm:'on'}
+};
 let popupSeen = new Set();
 let settingsUnlocked = false;
 let dieGridMinimized = false;
@@ -240,7 +361,23 @@ const SETTINGS_PASSWORD = "keci123";
 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0,10);
+const nowLocalInput = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+};
 const makeKey = (id, rev, side) => (id||'').trim().toUpperCase()+'::'+(rev||'').trim().toUpperCase()+'::'+(side||'A').trim().toUpperCase();
+
+function normalizeLineCode(raw){
+  if(!raw) return '';
+  const cleaned = String(raw).trim().toUpperCase().replace(/^LINE[-\s_0]*/i, 'L-');
+  if(LINES.includes(cleaned)) return cleaned;
+  const match = cleaned.match(/L[-\s_]*([1-8])/);
+  if(match) return 'L-' + match[1];
+  const numMatch = cleaned.match(/^0?([1-8])$/);
+  if(numMatch) return 'L-' + numMatch[1];
+  return cleaned;
+}
 
 function getYesterdayDate() {
   let d = new Date();
@@ -253,15 +390,45 @@ function toggleDieGrid(){
   renderDashboard();
 }
 
+function ensureMachineStateShape(){
+  if(!Array.isArray(db.machineRunLogs)) db.machineRunLogs = [];
+  if(!db.lineStates || typeof db.lineStates !== 'object') db.lineStates = createDefaultLineStates();
+  LINES.forEach(line => {
+    if(!db.lineStates[line]){
+      db.lineStates[line] = {
+        status:'Running',
+        speed:1.0,
+        streams:{'S-1':'Running','S-2':'Running','S-3':'Running'},
+        streamStopTimes:{'S-1':'','S-2':'','S-3':''},
+        stopDateTime:'',
+        resumeDateTime:'',
+        reason:''
+      };
+    } else {
+      if(!db.lineStates[line].streams) db.lineStates[line].streams = {'S-1':'Running','S-2':'Running','S-3':'Running'};
+      if(!db.lineStates[line].streamStopTimes) db.lineStates[line].streamStopTimes = {'S-1':'','S-2':'','S-3':''};
+      STREAMS.forEach(s => {
+        if(!db.lineStates[line].streams[s]) db.lineStates[line].streams[s] = 'Running';
+        if(db.lineStates[line].streamStopTimes[s] == null) db.lineStates[line].streamStopTimes[s] = '';
+      });
+      if(db.lineStates[line].speed == null || Number(db.lineStates[line].speed) <= 0) db.lineStates[line].speed = 1.0;
+      const anyStreamRunning = STREAMS.some(s => db.lineStates[line].streams[s] === 'Running');
+      db.lineStates[line].status = anyStreamRunning ? 'Running' : 'Stopped';
+    }
+  });
+}
+
 function loadFirebaseData(){
   dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
     if(doc.exists){
       let x = doc.data();
       if(x && Array.isArray(x.dies)){
         db = {...db, ...x, settings: {...db.settings, ...(x.settings || {})}};
+        ensureMachineStateShape();
         renderAll();
       }
     } else {
+      ensureMachineStateShape();
       saveCloud();
     }
   }, err => {
@@ -270,6 +437,7 @@ function loadFirebaseData(){
 }
 
 function saveCloud(){
+  ensureMachineStateShape();
   dbCloud.collection('monitorData').doc('mainState').set(db)
     .then(() => { renderAll(); })
     .catch(err => { alert("Error saving data to cloud: " + err.message); });
@@ -348,6 +516,10 @@ function showTab(tab){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
   if(tab==='production' && !$('editProdId').value) resetProdForm();
   if(tab==='maintenance' && !$('editMaintId').value) resetMaintForm();
+  if(tab==='machinerun'){
+    renderLineMatrix();
+    renderMachineRunLog();
+  }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -391,10 +563,14 @@ function verifySettingsPassword(){
 }
 
 function renderAll(){
+  ensureMachineStateShape();
+  updateAutoBackupUI();
   renderDashboard();
   renderDies();
   renderProduction();
   renderMaintenance();
+  renderLineMatrix();
+  renderMachineRunLog();
   populateDieIdSelects();
   renderAlerts();
 }
@@ -419,7 +595,6 @@ function renderAlerts(){
 }
 
 function openDieModal(id, rev){
-  // FIXED: Explicitly look up Side A and Side B using their exact unique side keys
   let sideA = db.dies.find(x => makeKey(x.id, x.revision, x.size) === makeKey(id, rev, 'A'));
   let sideB = db.dies.find(x => makeKey(x.id, x.revision, x.size) === makeKey(id, rev, 'B'));
   let profileName = sideA?.profile || sideB?.profile || '—';
@@ -473,6 +648,1031 @@ function openDieModal(id, rev){
       </div>
     </div>
   `;
+}
+
+/* ============================================================================
+   MACHINE RUN & DOWNTIME (L-1 TO L-8, STREAMS S-1..S-3, STOP POPUP & EDIT MODAL)
+   ============================================================================ */
+function renderLineMatrix(){
+  ensureMachineStateShape();
+  const grid = $('lineMatrixGrid');
+  if(!grid) return;
+
+  grid.innerHTML = LINES.map(line => {
+    const st = db.lineStates[line];
+    const activeStreamsCount = STREAMS.filter(s => st.streams[s] === 'Running').length;
+    const isStopped = activeStreamsCount === 0 || st.status === 'Stopped';
+
+    return `
+      <div class="line-card ${isStopped ? 'stopped-line' : ''}">
+        <div class="line-card-top">
+          <div>
+            <div class="line-title">${line} <span class="status ${isStopped ? 'critical' : 'normal'}">${isStopped ? 'Stopped' : 'Running'}</span></div>
+            <div class="sub">Active streams: <strong>${activeStreamsCount}/3</strong></div>
+          </div>
+          <button class="btn small ${isStopped ? '' : 'danger'}" onclick="handleLineToggleClick('${line}')">
+            ${isStopped ? '▶ Start Line' : '⏹ Stop Line'}
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0">
+          <label style="font-size:12px;font-weight:700;color:#475569">Line Speed (m/min):</label>
+          <input type="number" step="0.01" min="0.01" value="${esc(st.speed)}" onchange="updateLineSpeed('${line}', this.value)" style="width:90px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-weight:700">
+        </div>
+
+        <div class="stream-row">
+          ${STREAMS.map(s => {
+            const sRun = st.streams[s] === 'Running';
+            const stopTs = st.streamStopTimes?.[s] || '';
+            return `
+              <div class="stream-box ${sRun ? '' : 's-stopped'}">
+                <div class="stream-label">${s}</div>
+                <button class="btn small ${sRun ? 'secondary' : 'danger'}" style="width:100%;padding:5px 6px;font-size:11px" onclick="handleStreamToggleClick('${line}','${s}')">
+                  ${sRun ? 'Running' : 'Stopped'}
+                </button>
+                ${!sRun && stopTs ? `<div style="font-size:10px;color:#991b1b;margin-top:4px">${esc(stopTs.replace('T',' '))}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        ${st.reason && isStopped ? `
+          <div style="font-size:11px;color:#991b1b;background:#fee2e2;padding:6px 8px;border-radius:6px">
+            <strong>Reason:</strong> ${esc(st.reason)}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function updateLineSpeed(line, val){
+  ensureMachineStateShape();
+  const speed = Number(val);
+  if(isNaN(speed) || speed <= 0) return;
+  db.lineStates[line].speed = speed;
+  save();
+}
+
+function openStopConfirmModal(line, targetStream){
+  // targetStream is 'S-1', 'S-2', 'S-3', or 'ALL'
+  const dtNow = nowLocalInput();
+  const label = targetStream === 'ALL' ? `${line} (All Streams S-1, S-2, S-3)` : `${line} — Stream ${targetStream}`;
+  $('modalHost').innerHTML = `
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal" style="max-width:460px;">
+        <h2 style="color:#b42318;margin-bottom:6px">⏹ Confirm Stop — ${esc(label)}</h2>
+        <p style="font-size:13px;margin-bottom:14px">Confirm stopping <strong>${esc(label)}</strong>. Date, time, and reason will be recorded in the Machine Run &amp; Downtime Log.</p>
+        <div class="field" style="margin-bottom:12px">
+          <label>Stop Date &amp; Time *</label>
+          <input type="datetime-local" id="stopConfirmDateTime" value="${esc(dtNow)}" required>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Reason for Stoppage *</label>
+          <textarea id="stopConfirmReason" rows="3" placeholder="Enter stoppage reason (e.g., die change, puller jam, resin refill, breakage)..." autofocus></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn secondary" onclick="$('modalHost').innerHTML=''">Cancel</button>
+          <button class="btn danger" onclick="confirmStopAction('${esc(line)}','${esc(targetStream)}')">Confirm Stop</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function calcDowntimeMinutes(stopDateTime, resumeDateTime, streamTarget, fallbackMins = 0){
+  if(!stopDateTime) return Math.min(PLANNED_STREAM_MINS_PER_DAY, Math.max(0, Number(fallbackMins || 0)));
+  const startMs = new Date(stopDateTime).getTime();
+  if(isNaN(startMs)) return Math.min(PLANNED_STREAM_MINS_PER_DAY, Math.max(0, Number(fallbackMins || 0)));
+
+  const endMs = resumeDateTime ? new Date(resumeDateTime).getTime() : Date.now();
+  if(isNaN(endMs)) return Math.min(PLANNED_STREAM_MINS_PER_DAY, Math.max(0, Number(fallbackMins || 0)));
+
+  const rawDiffMins = Math.max(0, Math.round((endMs - startMs) / 60000));
+  // Individual stream stop (S-1/S-2/S-3) = 1x exact clock minutes; full line stop (All Streams) = 3x stream-minutes
+  const isAllStreams = (streamTarget === 'ALL' || String(streamTarget || '').includes('All'));
+  const streamMinsLost = isAllStreams ? (rawDiffMins * STREAMS.length) : rawDiffMins;
+  return Math.min(PLANNED_STREAM_MINS_PER_DAY, streamMinsLost);
+}
+
+function calcRawElapsedMinutes(stopDateTime, resumeDateTime){
+  if(!stopDateTime) return null;
+  const startMs = new Date(stopDateTime).getTime();
+  if(isNaN(startMs)) return null;
+  const endMs = resumeDateTime ? new Date(resumeDateTime).getTime() : Date.now();
+  if(isNaN(endMs)) return null;
+  return Math.max(0, Math.round((endMs - startMs) / 60000));
+}
+
+function confirmStopAction(line, targetStream){
+  ensureMachineStateShape();
+  const stopDt = $('stopConfirmDateTime')?.value || nowLocalInput();
+  const reason = ($('stopConfirmReason')?.value || '').trim();
+  if(!reason){
+    alert('Please enter a reason for stopping.');
+    if($('stopConfirmReason')) $('stopConfirmReason').focus();
+    return;
+  }
+
+  const st = db.lineStates[line];
+  const datePart = stopDt.slice(0, 10) || today();
+  const streamsToStop = targetStream === 'ALL' ? [...STREAMS] : [targetStream];
+
+  streamsToStop.forEach(s => {
+    st.streams[s] = 'Stopped';
+    st.streamStopTimes[s] = stopDt;
+  });
+
+  const anyRunning = STREAMS.some(s => st.streams[s] === 'Running');
+  st.status = anyRunning ? 'Running' : 'Stopped';
+  st.stopDateTime = stopDt;
+  st.resumeDateTime = '';
+  st.reason = reason;
+
+  // Avoid creating a duplicate open stop record for the exact same line & targetStream
+  const existingOpen = db.machineRunLogs.find(r =>
+    r.line === line &&
+    !r.resumeDateTime &&
+    (r.stream || 'All (S-1..S-3)') === (targetStream === 'ALL' ? 'All (S-1..S-3)' : targetStream)
+  );
+
+  if(!existingOpen){
+    db.machineRunLogs.unshift({
+      id: 'MR-' + Date.now(),
+      date: datePart,
+      line,
+      stream: targetStream === 'ALL' ? 'All (S-1..S-3)' : targetStream,
+      status: 'Stopped',
+      speed: Number(st.speed || 1.0),
+      plannedMins: PLANNED_STREAM_MINS_PER_DAY,
+      rawDowntimeMins: 0,
+      downtimeMins: 0,
+      runMins: PLANNED_STREAM_MINS_PER_DAY,
+      streams: { ...st.streams },
+      stopDateTime: stopDt,
+      resumeDateTime: '',
+      reason
+    });
+  }
+
+  $('modalHost').innerHTML = '';
+  save();
+}
+
+function handleStreamToggleClick(line, stream){
+  ensureMachineStateShape();
+  const st = db.lineStates[line];
+  const curr = st.streams[stream] || 'Running';
+
+  if(curr === 'Running'){
+    openStopConfirmModal(line, stream);
+  } else {
+    // Starting the stream again: update the existing open downtime log row in-place with Start Date & Time and calculated downtime in minutes
+    const startDt = nowLocalInput();
+    const prevStopDt = st.streamStopTimes?.[stream] || st.stopDateTime || '';
+    st.streams[stream] = 'Running';
+    st.streamStopTimes[stream] = '';
+    st.status = 'Running';
+    st.resumeDateTime = startDt;
+
+    // Find open stop log matching this line and stream (or full-line stop)
+    const openStopEntry = db.machineRunLogs.find(r =>
+      r.line === line &&
+      !r.resumeDateTime &&
+      (r.stream === stream || r.stream === 'All (S-1..S-3)')
+    );
+
+    if(openStopEntry){
+      const effectiveStopDt = openStopEntry.stopDateTime || prevStopDt;
+      const rawMins = calcRawElapsedMinutes(effectiveStopDt, startDt) ?? 0;
+      const streamDtMins = calcDowntimeMinutes(effectiveStopDt, startDt, openStopEntry.stream, rawMins);
+
+      openStopEntry.stopDateTime = effectiveStopDt;
+      openStopEntry.resumeDateTime = startDt;
+      openStopEntry.plannedMins = PLANNED_STREAM_MINS_PER_DAY;
+      openStopEntry.rawDowntimeMins = rawMins;
+      openStopEntry.downtimeMins = streamDtMins;
+      openStopEntry.runMins = Math.max(0, PLANNED_STREAM_MINS_PER_DAY - streamDtMins);
+      openStopEntry.streams = { ...st.streams };
+
+      // Mark row status as Completed / Running once started back up
+      const stillStoppedStreams = STREAMS.filter(s => st.streams[s] === 'Stopped');
+      if(openStopEntry.stream === stream || stillStoppedStreams.length === 0){
+        openStopEntry.status = 'Running';
+      }
+    }
+
+    save();
+  }
+}
+
+function handleLineToggleClick(line){
+  ensureMachineStateShape();
+  const st = db.lineStates[line];
+  const activeStreamsCount = STREAMS.filter(s => st.streams[s] === 'Running').length;
+  const isStopped = activeStreamsCount === 0 || st.status === 'Stopped';
+
+  if(!isStopped){
+    openStopConfirmModal(line, 'ALL');
+  } else {
+    // Starting the line again: update all open stop rows for this line in-place with Start Date & Time and exact downtime in minutes
+    const startDt = nowLocalInput();
+    const prevStopDt = st.stopDateTime || '';
+    STREAMS.forEach(s => {
+      st.streams[s] = 'Running';
+      st.streamStopTimes[s] = '';
+    });
+    st.status = 'Running';
+    st.resumeDateTime = startDt;
+
+    const openEntries = db.machineRunLogs.filter(r => r.line === line && !r.resumeDateTime);
+    openEntries.forEach(entry => {
+      const effectiveStopDt = entry.stopDateTime || prevStopDt;
+      const rawMins = calcRawElapsedMinutes(effectiveStopDt, startDt) ?? 0;
+      const streamDtMins = calcDowntimeMinutes(effectiveStopDt, startDt, entry.stream, rawMins);
+
+      entry.stopDateTime = effectiveStopDt;
+      entry.resumeDateTime = startDt;
+      entry.plannedMins = PLANNED_STREAM_MINS_PER_DAY;
+      entry.rawDowntimeMins = rawMins;
+      entry.downtimeMins = streamDtMins;
+      entry.runMins = Math.max(0, PLANNED_STREAM_MINS_PER_DAY - streamDtMins);
+      entry.streams = { ...st.streams };
+      entry.status = 'Running';
+    });
+
+    save();
+  }
+}
+
+function editMachineRun(id){
+  const item = db.machineRunLogs.find(x => x.id === id);
+  if(!item) return;
+
+  const s1 = item.streams?.['S-1'] || 'Running';
+  const s2 = item.streams?.['S-2'] || 'Running';
+  const s3 = item.streams?.['S-3'] || 'Running';
+  const currentRawMins = item.rawDowntimeMins ?? calcRawElapsedMinutes(item.stopDateTime, item.resumeDateTime) ?? item.downtimeMins ?? 0;
+
+  $('modalHost').innerHTML = `
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal" style="max-width:640px;">
+        <h2 style="margin-bottom:6px">✏ Edit Machine Run / Downtime Log</h2>
+        <p style="font-size:13px;margin-bottom:14px">Edit Stop &amp; Start Date/Time to auto-calculate downtime in minutes. Planned run time is <strong>4,320 stream-mins/day (1,440 min × 3 streams)</strong>.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label>Log Date *</label>
+            <input type="date" id="editMrDate" value="${esc(item.date || today())}">
+          </div>
+          <div class="field">
+            <label>Machine Line *</label>
+            <select id="editMrLine">
+              ${LINES.map(l => `<option value="${l}" ${item.line === l ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Target Stream</label>
+            <select id="editMrStream">
+              <option value="All (S-1..S-3)" ${(item.stream || '').includes('All') ? 'selected' : ''}>All (S-1..S-3)</option>
+              <option value="S-1" ${item.stream === 'S-1' ? 'selected' : ''}>S-1</option>
+              <option value="S-2" ${item.stream === 'S-2' ? 'selected' : ''}>S-2</option>
+              <option value="S-3" ${item.stream === 'S-3' ? 'selected' : ''}>S-3</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Current State *</label>
+            <select id="editMrStatus">
+              <option value="Running" ${item.status === 'Running' ? 'selected' : ''}>Started / Running</option>
+              <option value="Stopped" ${item.status === 'Stopped' ? 'selected' : ''}>Stopped (Ongoing)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Line Speed (m/min) *</label>
+            <input type="number" step="0.01" min="0.01" id="editMrSpeed" value="${esc(item.speed ?? 1.0)}">
+          </div>
+          <div class="field">
+            <label>Downtime (mins) — Auto-calculated from Stop &amp; Start</label>
+            <input type="number" step="1" min="0" id="editMrDowntime" value="${esc(currentRawMins)}">
+          </div>
+          <div class="field">
+            <label>Stop Date &amp; Time *</label>
+            <input type="datetime-local" id="editMrStopDt" value="${esc(item.stopDateTime || '')}" oninput="recalcModalDowntime()">
+          </div>
+          <div class="field">
+            <label>Start / Resume Date &amp; Time</label>
+            <input type="datetime-local" id="editMrResumeDt" value="${esc(item.resumeDateTime || '')}" oninput="recalcModalDowntime()">
+          </div>
+          <div class="field">
+            <label>Reason / Remarks</label>
+            <input type="text" id="editMrReason" value="${esc(item.reason || '')}">
+          </div>
+          <div class="field">
+            <label>Stream S-1</label>
+            <select id="editMrS1">
+              <option value="Running" ${s1 === 'Running' ? 'selected' : ''}>Running</option>
+              <option value="Stopped" ${s1 === 'Stopped' ? 'selected' : ''}>Stopped</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Stream S-2</label>
+            <select id="editMrS2">
+              <option value="Running" ${s2 === 'Running' ? 'selected' : ''}>Running</option>
+              <option value="Stopped" ${s2 === 'Stopped' ? 'selected' : ''}>Stopped</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Stream S-3</label>
+            <select id="editMrS3">
+              <option value="Running" ${s3 === 'Running' ? 'selected' : ''}>Running</option>
+              <option value="Stopped" ${s3 === 'Stopped' ? 'selected' : ''}>Stopped</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn secondary" onclick="$('modalHost').innerHTML=''">Cancel</button>
+          <button class="btn" onclick="saveEditedMachineRun('${esc(item.id)}')">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function recalcModalDowntime(){
+  const stopDt = $('editMrStopDt')?.value || '';
+  const startDt = $('editMrResumeDt')?.value || '';
+  if(stopDt && startDt){
+    const rawMins = calcRawElapsedMinutes(stopDt, startDt);
+    if(rawMins !== null && $('editMrDowntime')){
+      $('editMrDowntime').value = rawMins;
+    }
+    if($('editMrStatus')) $('editMrStatus').value = 'Running';
+  }
+}
+
+function saveEditedMachineRun(id){
+  ensureMachineStateShape();
+  const dateVal = $('editMrDate').value || today();
+  const line = normalizeLineCode($('editMrLine').value) || 'L-1';
+  const stream = $('editMrStream').value;
+  let statusVal = $('editMrStatus').value;
+  const speed = Math.max(0.01, Number($('editMrSpeed').value || 1.0));
+  const stopDt = $('editMrStopDt').value || '';
+  const resumeDt = $('editMrResumeDt').value || '';
+  let rawDowntimeMins = Math.max(0, Number($('editMrDowntime').value || 0));
+
+  if(stopDt && resumeDt){
+    const calculated = calcRawElapsedMinutes(stopDt, resumeDt);
+    if(calculated !== null) rawDowntimeMins = calculated;
+    statusVal = 'Running';
+  }
+
+  const isAllStreams = (stream === 'ALL' || String(stream || '').includes('All'));
+  const streamDowntimeMins = Math.min(PLANNED_STREAM_MINS_PER_DAY, isAllStreams ? (rawDowntimeMins * STREAMS.length) : rawDowntimeMins);
+
+  const streamsObj = {
+    'S-1': $('editMrS1').value,
+    'S-2': $('editMrS2').value,
+    'S-3': $('editMrS3').value
+  };
+  const reason = $('editMrReason').value.trim();
+
+  db.machineRunLogs = db.machineRunLogs.map(r => {
+    if(r.id !== id) return r;
+    return {
+      ...r,
+      date: dateVal,
+      line,
+      stream,
+      status: statusVal,
+      speed,
+      plannedMins: PLANNED_STREAM_MINS_PER_DAY,
+      rawDowntimeMins,
+      downtimeMins: streamDowntimeMins,
+      runMins: Math.max(0, PLANNED_STREAM_MINS_PER_DAY - streamDowntimeMins),
+      streams: streamsObj,
+      stopDateTime: stopDt,
+      resumeDateTime: resumeDt,
+      reason
+    };
+  });
+
+  // Sync live line state if this is the most recent log for that line
+  const latestForLine = db.machineRunLogs.find(r => r.line === line);
+  if(latestForLine && latestForLine.id === id && db.lineStates[line]){
+    db.lineStates[line].speed = speed;
+    db.lineStates[line].streams = { ...streamsObj };
+    const anyRun = STREAMS.some(s => streamsObj[s] === 'Running');
+    db.lineStates[line].status = anyRun ? 'Running' : 'Stopped';
+    db.lineStates[line].stopDateTime = stopDt;
+    db.lineStates[line].resumeDateTime = resumeDt;
+    db.lineStates[line].reason = reason;
+  }
+
+  $('modalHost').innerHTML = '';
+  save();
+}
+
+function deleteMachineRun(id){
+  if(confirm('Delete this machine run / downtime log entry?')){
+    db.machineRunLogs = db.machineRunLogs.filter(x => x.id !== id);
+    save();
+  }
+}
+
+function renderMachineRunLog(){
+  const wrap = $('machineRunTableWrap');
+  if(!wrap) return;
+  const fDate = $('mrFilterDate')?.value || '';
+  const fLine = $('mrFilterLine')?.value || '';
+  const q = ($('mrSearch')?.value || '').toLowerCase();
+
+  const rows = db.machineRunLogs.filter(r => {
+    if(fDate && r.date !== fDate) return false;
+    if(fLine && r.line !== fLine) return false;
+    const sStr = `S-1:${r.streams?.['S-1']||'Running'} S-2:${r.streams?.['S-2']||'Running'} S-3:${r.streams?.['S-3']||'Running'}`;
+    const hay = `${r.date} ${r.line} ${r.stream||''} ${r.status} ${r.speed} ${r.stopDateTime||''} ${r.resumeDateTime||''} ${r.reason||''} ${sStr}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if(!rows.length){
+    wrap.innerHTML = '<div class="empty">No machine run or downtime entries found. Click Stop on any line or stream above to log Stop Date &amp; Time, and Start again to calculate Downtime in minutes.</div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Line</th>
+          <th>Stream</th>
+          <th>Current State</th>
+          <th>Speed (m/min)</th>
+          <th>Stop Date &amp; Time</th>
+          <th>Start Date &amp; Time</th>
+          <th>Downtime (mins)</th>
+          <th>Planned / Run (stream-mins)</th>
+          <th>Reason / Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => {
+          const planned = PLANNED_STREAM_MINS_PER_DAY;
+          const isOngoingStop = Boolean(r.stopDateTime && !r.resumeDateTime);
+          const isAllStreams = (r.stream === 'ALL' || String(r.stream || '').includes('All'));
+          const computedRawMins = r.stopDateTime
+            ? (calcRawElapsedMinutes(r.stopDateTime, r.resumeDateTime) ?? Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0))
+            : Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
+          const streamDtMins = r.stopDateTime
+            ? calcDowntimeMinutes(r.stopDateTime, r.resumeDateTime, r.stream, computedRawMins)
+            : Math.min(planned, isAllStreams ? (computedRawMins * STREAMS.length) : computedRawMins);
+          const runM = Math.max(0, planned - streamDtMins);
+
+          return `
+            <tr>
+              <td>${esc(r.date)}</td>
+              <td><strong>${esc(r.line)}</strong></td>
+              <td><strong>${esc(r.stream || 'All (S-1..S-3)')}</strong></td>
+              <td>
+                <span class="status ${isOngoingStop || r.status === 'Stopped' ? 'critical' : 'normal'}">
+                  ${isOngoingStop ? 'Stopped (Open)' : 'Started / Completed'}
+                </span>
+              </td>
+              <td><strong>${num(r.speed ?? 1.0)}</strong></td>
+              <td><strong style="color:var(--red)">${esc((r.stopDateTime || '—').replace('T', ' '))}</strong></td>
+              <td><strong style="color:${r.resumeDateTime ? 'var(--green)' : 'var(--muted)'}">${esc(r.resumeDateTime ? r.resumeDateTime.replace('T', ' ') : 'Still Stopped…')}</strong></td>
+              <td>
+                <strong style="color:${computedRawMins > 0 ? 'var(--red)' : 'inherit'}">${num(computedRawMins)} min</strong>
+                ${isOngoingStop ? `<span class="sub"> (live)</span>` : ''}
+                ${isAllStreams && computedRawMins > 0 ? `<div class="sub">${num(streamDtMins)} stream-mins (3×)</div>` : ''}
+              </td>
+              <td>${num(planned)} / <strong style="color:var(--green)">${num(runM)}</strong></td>
+              <td>${esc(r.reason || '—')}</td>
+              <td>
+                <button class="btn secondary small" onclick="editMachineRun('${r.id}')">Edit</button>
+                <button class="btn secondary small" onclick="deleteMachineRun('${r.id}')">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function importMachineRunFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonRows = XLSX.utils.sheet_to_json(firstSheet, {raw: false});
+      if(!jsonRows || !jsonRows.length){
+        alert('Uploaded file is empty or unreadable.');
+        return;
+      }
+
+      let count = 0;
+      const ts = Date.now();
+      jsonRows.forEach((row, idx) => {
+        const rawLine = row['Line'] || row['line'] || row['Machine'] || row['machine'] || '';
+        const line = normalizeLineCode(rawLine);
+        if(!line || !LINES.includes(line)) return;
+
+        const dateVal = (row['Date'] || row['date'] || today()).toString().trim();
+        const speed = Math.max(0.01, Number(row['Speed'] || row['speed'] || row['Line Speed'] || row['Line Speed (m/min)'] || 1.0) || 1.0);
+        const plannedMins = PLANNED_STREAM_MINS_PER_DAY;
+        const targetStream = (row['Target Stream'] || row['Stream'] || row['stream'] || 'All (S-1..S-3)').toString().trim();
+
+        const stopDateTime = (row['Stop DateTime'] || row['Stop Date & Time'] || row['stopDateTime'] || '').toString().trim();
+        const resumeDateTime = (row['Start DateTime'] || row['Start Date & Time'] || row['Resume DateTime'] || row['Resume Date & Time'] || row['resumeDateTime'] || '').toString().trim();
+
+        let rawDowntimeMins = Math.max(0, Number(row['Downtime (mins)'] || row['Downtime (m)'] || row['Downtime Mins'] || row['downtimeMins'] || 0) || 0);
+        if(stopDateTime && resumeDateTime){
+          const diffMins = calcRawElapsedMinutes(stopDateTime, resumeDateTime);
+          if(diffMins !== null) rawDowntimeMins = diffMins;
+        }
+
+        const isAllStreams = (targetStream === 'ALL' || String(targetStream || '').includes('All'));
+        const streamDtMins = Math.min(plannedMins, isAllStreams ? (rawDowntimeMins * STREAMS.length) : rawDowntimeMins);
+
+        const rawStatus = (row['Status'] || row['status'] || row['Current State'] || '').toString().trim();
+        const statusVal = (stopDateTime && !resumeDateTime) || /stop/i.test(rawStatus) ? 'Stopped' : 'Running';
+
+        const s1Raw = (row['S-1'] || row['S1'] || row['s1'] || 'Running').toString().trim();
+        const s2Raw = (row['S-2'] || row['S2'] || row['s2'] || 'Running').toString().trim();
+        const s3Raw = (row['S-3'] || row['S3'] || row['s3'] || 'Running').toString().trim();
+        const reason = (row['Reason'] || row['reason'] || row['Remarks'] || row['remarks'] || '').toString().trim();
+
+        const entry = {
+          id: 'MR-IMP-' + ts + '-' + idx,
+          date: dateVal,
+          line,
+          stream: targetStream,
+          status: statusVal,
+          speed,
+          plannedMins,
+          rawDowntimeMins,
+          downtimeMins: streamDtMins,
+          runMins: Math.max(0, plannedMins - streamDtMins),
+          streams: {
+            'S-1': /stop/i.test(s1Raw) ? 'Stopped' : 'Running',
+            'S-2': /stop/i.test(s2Raw) ? 'Stopped' : 'Running',
+            'S-3': /stop/i.test(s3Raw) ? 'Stopped' : 'Running'
+          },
+          stopDateTime,
+          resumeDateTime,
+          reason
+        };
+
+        db.machineRunLogs.unshift(entry);
+        if(db.lineStates[line]){
+          db.lineStates[line].status = statusVal;
+          db.lineStates[line].speed = speed;
+          db.lineStates[line].streams = {...entry.streams};
+          if(stopDateTime) db.lineStates[line].stopDateTime = stopDateTime;
+          if(resumeDateTime) db.lineStates[line].resumeDateTime = resumeDateTime;
+          if(reason) db.lineStates[line].reason = reason;
+        }
+        count++;
+      });
+
+      if(count > 0){
+        save();
+        alert(`Imported ${count} machine run & downtime records (4,320 stream-mins/day planned time) and synced with OEE.`);
+      } else {
+        alert('No valid L-1 to L-8 rows found in uploaded file.');
+      }
+    } catch(err){
+      console.error(err);
+      alert('Failed to import file: ' + err.message);
+    }
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function exportMachineRunCSV(){
+  let csv = 'Date,Line,Stream,Current State,Speed (m/min),Stop Date & Time,Start Date & Time,Downtime (mins),Downtime (stream-mins),Planned Stream-Mins,Run Stream-Mins,Reason\n';
+  db.machineRunLogs.forEach(r => {
+    const planned = PLANNED_STREAM_MINS_PER_DAY;
+    const isAllStreams = (r.stream === 'ALL' || String(r.stream || '').includes('All'));
+    const rawDt = r.stopDateTime
+      ? (calcRawElapsedMinutes(r.stopDateTime, r.resumeDateTime) ?? Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0))
+      : Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
+    const streamDt = r.stopDateTime
+      ? calcDowntimeMinutes(r.stopDateTime, r.resumeDateTime, r.stream, rawDt)
+      : Math.min(planned, isAllStreams ? (rawDt * STREAMS.length) : rawDt);
+    const runM = Math.max(0, planned - streamDt);
+    const stateLabel = (r.stopDateTime && !r.resumeDateTime) ? 'Stopped (Open)' : 'Started / Completed';
+    csv += `"${r.date}","${r.line}","${r.stream || 'All (S-1..S-3)'}","${stateLabel}",${r.speed ?? 1.0},"${r.stopDateTime||''}","${r.resumeDateTime||''}",${rawDt},${streamDt},${planned},${runM},"${(r.reason||'').replace(/"/g,'""')}"\n`;
+  });
+  downloadReportCSV(csv, 'machine_run_downtime_' + today() + '.csv');
+}
+
+/* ============================================================================
+   OEE CALCULATION ENGINE (4320 STREAM-MINS/DAY = 1440 MIN × 3 STREAMS)
+   ============================================================================ */
+function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
+  ensureMachineStateShape();
+  const matchesPeriod = dStr => {
+    if(!dStr) return false;
+    if(!dateOrMonthFilter) return true;
+    return isMonthly ? dStr.startsWith(dateOrMonthFilter) : dStr === dateOrMonthFilter;
+  };
+
+  const lineLogs = db.machineRunLogs.filter(r => r.line === line && matchesPeriod(r.date));
+  const prodLogs = db.production.filter(p => normalizeLineCode(p.machine) === line && matchesPeriod(p.date));
+
+  // Group logs by date so each active day has 4,320 planned stream-minutes (1,440 min × 3 streams)
+  const dayDowntimeMap = {};
+  const daySpeedMap = {};
+
+  lineLogs.forEach(r => {
+    const dKey = r.date || today();
+    if(!dayDowntimeMap[dKey]){
+      dayDowntimeMap[dKey] = 0;
+      daySpeedMap[dKey] = [];
+    }
+    const isAllStreams = (r.stream === 'ALL' || String(r.stream || '').includes('All'));
+    const rawMins = Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
+    const rowStreamDt = r.stopDateTime
+      ? calcDowntimeMinutes(r.stopDateTime, r.resumeDateTime, r.stream, rawMins)
+      : Math.max(0, isAllStreams ? (rawMins * STREAMS.length) : rawMins);
+    dayDowntimeMap[dKey] += rowStreamDt;
+    daySpeedMap[dKey].push(Number(r.speed ?? db.lineStates[line]?.speed ?? 1.0));
+  });
+
+  prodLogs.forEach(p => {
+    const dKey = p.date || today();
+    if(!dayDowntimeMap[dKey]){
+      dayDowntimeMap[dKey] = 0;
+      daySpeedMap[dKey] = [Number(db.lineStates[line]?.speed ?? 1.0)];
+    }
+  });
+
+  const activeDays = Object.keys(dayDowntimeMap);
+  let goodM = 0;
+  let rejM = 0;
+  prodLogs.forEach(p => {
+    goodM += Number(p.length || 0);
+    rejM += Number(p.rejection || 0);
+  });
+
+  const hasData = activeDays.length > 0 || (goodM + rejM) > 0;
+  if(!hasData){
+    return {
+      hasData: false,
+      line,
+      plannedMins: 0,
+      runMins: 0,
+      downtimeMins: 0,
+      avgSpeed: db.lineStates[line]?.speed || 1.0,
+      goodM: 0,
+      rejM: 0,
+      availability: 0,
+      performance: 0,
+      quality: 0,
+      oee: 0
+    };
+  }
+
+  let plannedMins = 0;
+  let downtimeMins = 0;
+  let speedSum = 0;
+
+  activeDays.forEach(dKey => {
+    plannedMins += PLANNED_STREAM_MINS_PER_DAY;
+    downtimeMins += Math.min(PLANNED_STREAM_MINS_PER_DAY, dayDowntimeMap[dKey]);
+    const spArr = daySpeedMap[dKey];
+    speedSum += spArr.reduce((a,b)=>a+b,0) / spArr.length;
+  });
+
+  const runMins = Math.max(0, plannedMins - downtimeMins);
+  const avgSpeed = activeDays.length > 0 ? (speedSum / activeDays.length) : Number(db.lineStates[line]?.speed || 1.0);
+
+  // Availability = Actual Run Stream-Mins / Planned Stream-Mins (4,320 stream-mins/day)
+  const availability = plannedMins > 0 ? Math.min(1, runMins / plannedMins) : 0;
+
+  // Quality = Good Production / (Good Production + Rejection)
+  const totalOutput = goodM + rejM;
+  const quality = totalOutput > 0 ? Math.min(1, goodM / totalOutput) : 1;
+
+  // Performance = Actual Total Output / (Actual Run Stream-Mins * Line Speed per stream)
+  const idealCapacityM = runMins * avgSpeed;
+  let performance = 0;
+  if(idealCapacityM > 0 && totalOutput > 0){
+    performance = Math.min(1, totalOutput / idealCapacityM);
+  }
+
+  const oee = availability * performance * quality;
+
+  return {
+    hasData: true,
+    line,
+    plannedMins,
+    runMins,
+    downtimeMins,
+    avgSpeed,
+    goodM,
+    rejM,
+    availability: availability * 100,
+    performance: performance * 100,
+    quality: quality * 100,
+    oee: oee * 100
+  };
+}
+
+function oeeBadge(val, hasData){
+  if(!hasData) return `<span class="status inactive">No Data</span>`;
+  const cls = val >= 75 ? 'oee-high' : val >= 50 ? 'oee-mid' : 'oee-low';
+  return `<span class="oee-pill ${cls}">${num(val)}%</span>`;
+}
+
+function renderOeeDashboard(){
+  ensureMachineStateShape();
+  const boxesWrap = $('oeeSummaryBoxesWrap');
+  const tableWrap = $('oeeDetailedTableWrap');
+  if(!boxesWrap || !tableWrap) return;
+
+  const allDatesSet = new Set();
+  const allMonthsSet = new Set();
+
+  db.machineRunLogs.forEach(r => {
+    if(r.date){
+      allDatesSet.add(r.date);
+      if(r.date.length >= 7) allMonthsSet.add(r.date.slice(0, 7));
+    }
+  });
+  db.production.forEach(p => {
+    if(p.date){
+      allDatesSet.add(p.date);
+      if(p.date.length >= 7) allMonthsSet.add(p.date.slice(0, 7));
+    }
+  });
+
+  const sortedMonths = [...allMonthsSet].sort((a,b) => b.localeCompare(a));
+
+  const lineSel = $('oeeLineFilter');
+  if(lineSel){
+    const prevL = lineSel.value;
+    lineSel.innerHTML = '<option value="">All Lines (L-1 to L-8)</option>' + LINES.map(l => `<option value="${l}">${l}</option>`).join('');
+    if(LINES.includes(prevL)) lineSel.value = prevL;
+  }
+
+  const monthSel = $('oeeMonthFilter');
+  if(monthSel){
+    const prevM = monthSel.value;
+    monthSel.innerHTML = '<option value="">All Months</option>' + sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    if(sortedMonths.includes(prevM)) monthSel.value = prevM;
+  }
+
+  const viewMode = $('oeeViewModeFilter')?.value || 'summary';
+  const lFilter = $('oeeLineFilter')?.value || '';
+  const dFilter = $('oeeDateFilter')?.value || '';
+  const mFilter = $('oeeMonthFilter')?.value || '';
+
+  const targetLines = lFilter ? [lFilter] : LINES;
+  const currentYm = mFilter || today().slice(0, 7);
+  const periodFilter = dFilter || mFilter || currentYm;
+  const isMonthlyScope = !dFilter;
+
+  // Compute summary metrics across selected lines for current period
+  let sumPlanned = 0, sumRun = 0, sumDt = 0, sumGood = 0, sumRej = 0, sumIdealCap = 0;
+  const lineBoxHtml = targetLines.map(line => {
+    const st = computeLinePeriodOee(line, periodFilter, isMonthlyScope);
+    if(st.hasData){
+      sumPlanned += st.plannedMins;
+      sumRun += st.runMins;
+      sumDt += st.downtimeMins;
+      sumGood += st.goodM;
+      sumRej += st.rejM;
+      sumIdealCap += (st.runMins * st.avgSpeed);
+    }
+    return `
+      <div class="oee-mini-box">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${esc(line)}</strong>
+          ${oeeBadge(st.oee, st.hasData)}
+        </div>
+        <div class="sub">A: ${num(st.availability)}% • P: ${num(st.performance)}% • Q: ${num(st.quality)}%</div>
+        <div class="sub">Run: ${num(st.runMins)} / DT: ${num(st.downtimeMins)} stream-mins</div>
+      </div>
+    `;
+  }).join('');
+
+  // Dashboard KPI cards: all-time OEE, current-month OEE, and yesterday's daily OEE.
+  // OEE is calculated from combined run time, ideal capacity, good output and rejection
+  // across the selected lines (not by averaging individual line percentages).
+  const calculateOeeForPeriod = (period, monthly) => {
+    let planned = 0, run = 0, good = 0, rejected = 0, idealCapacity = 0;
+    let hasData = false;
+
+    targetLines.forEach(line => {
+      const st = computeLinePeriodOee(line, period, monthly);
+      if (!st.hasData) return;
+      hasData = true;
+      planned += st.plannedMins;
+      run += st.runMins;
+      good += st.goodM;
+      rejected += st.rejM;
+      idealCapacity += st.runMins * st.avgSpeed;
+    });
+
+    if (!hasData) return { value: 0, hasData: false, planned: 0, run: 0, good: 0, rejected: 0 };
+    const availability = planned > 0 ? Math.min(1, run / planned) : 0;
+    const output = good + rejected;
+    const performance = idealCapacity > 0 && output > 0 ? Math.min(1, output / idealCapacity) : 0;
+    const quality = output > 0 ? Math.min(1, good / output) : 1;
+    return {
+      value: availability * performance * quality * 100,
+      hasData, planned, run, good, rejected
+    };
+  };
+
+  const overallKpi = calculateOeeForPeriod(null, true);
+  const monthlyKpi = calculateOeeForPeriod(today().slice(0, 7), true);
+  const yesterdayDate = getYesterdayDate();
+  const dailyKpi = calculateOeeForPeriod(yesterdayDate, false);
+  const kpiCard = (label, result, detail) => `
+    <div class="card" style="margin:0">
+      <div class="metric-label">${label}</div>
+      <div class="metric" style="color:${!result.hasData?'#667085':result.value>=75?'#16834a':result.value>=50?'#b96b00':'#c62828'}">${result.hasData ? num(result.value)+'%' : '—'}</div>
+      <div class="sub">${detail}</div>
+    </div>`;
+
+  boxesWrap.innerHTML = `
+    <div class="oee-kpi-grid" style="grid-template-columns:repeat(3,minmax(160px,1fr))">
+      ${kpiCard('Overall OEE', overallKpi, overallKpi.hasData ? `All recorded dates • ${num(overallKpi.run)} run stream-mins` : 'No OEE data recorded')}
+      ${kpiCard('Monthly OEE', monthlyKpi, monthlyKpi.hasData ? `${today().slice(0,7)} • Current month` : 'No data for current month')}
+      ${kpiCard('Daily OEE (Yesterday)', dailyKpi, dailyKpi.hasData ? `${yesterdayDate} • Previous day` : `No data recorded for ${yesterdayDate}`)}
+    </div>
+    <div class="oee-line-boxes">${lineBoxHtml}</div>
+  `;
+
+  // Minimised by default ('summary' hides table); show detailed table only when user selects another view mode
+  if(viewMode === 'summary'){
+    tableWrap.classList.add('hidden');
+    tableWrap.innerHTML = '';
+    return;
+  }
+
+  tableWrap.classList.remove('hidden');
+
+  if(viewMode === 'overall'){
+    const targetMonths = mFilter ? [mFilter] : sortedMonths;
+    if(!targetMonths.length){
+      tableWrap.innerHTML = '<div class="empty">No monthly data available for Overall Monthly OEE.</div>';
+      return;
+    }
+    const mRows = targetMonths.map(ym => {
+      let mPlan = 0, mRun = 0, mDt = 0, mGood = 0, mRej = 0, mIdeal = 0, activeLines = 0;
+      targetLines.forEach(line => {
+        const st = computeLinePeriodOee(line, ym, true);
+        if(st.hasData){
+          activeLines++;
+          mPlan += st.plannedMins;
+          mRun += st.runMins;
+          mDt += st.downtimeMins;
+          mGood += st.goodM;
+          mRej += st.rejM;
+          mIdeal += (st.runMins * st.avgSpeed);
+        }
+      });
+      const a = mPlan > 0 ? Math.min(100, (mRun / mPlan) * 100) : 0;
+      const out = mGood + mRej;
+      const q = out > 0 ? Math.min(100, (mGood / out) * 100) : 100;
+      const p = (mIdeal > 0 && out > 0) ? Math.min(100, (out / mIdeal) * 100) : 0;
+      const oee = (a / 100) * (p / 100) * (q / 100) * 100;
+      return `
+        <tr>
+          <td><strong>${esc(ym)}</strong></td>
+          <td>${activeLines} / ${targetLines.length} lines</td>
+          <td>${num(mPlan)}</td>
+          <td>${num(mRun)} / <span style="color:var(--red)">${num(mDt)}</span></td>
+          <td>${num(mGood)} m (${num(mRej)} m rej)</td>
+          <td><strong>${num(a)}%</strong></td>
+          <td><strong>${num(p)}%</strong></td>
+          <td><strong>${num(q)}%</strong></td>
+          <td>${oeeBadge(oee, true)}</td>
+        </tr>
+      `;
+    }).join('');
+    tableWrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Active Lines</th>
+            <th>Planned (4320/day)</th>
+            <th>Run / DT (stream-mins)</th>
+            <th>Good / Rej (m)</th>
+            <th>Availability</th>
+            <th>Performance</th>
+            <th>Quality</th>
+            <th>Overall Monthly OEE</th>
+          </tr>
+        </thead>
+        <tbody>${mRows}</tbody>
+      </table>
+    `;
+  } else if(viewMode === 'daily'){
+    const datesToShow = dFilter ? [dFilter] : [...allDatesSet].filter(dt => !mFilter || dt.startsWith(mFilter)).sort((a,b) => b.localeCompare(a)).slice(0, 20);
+    if(!datesToShow.length){
+      tableWrap.innerHTML = '<div class="empty">No daily records found for the selected filter.</div>';
+      return;
+    }
+    let dRowsHtml = '';
+    datesToShow.forEach(dt => {
+      targetLines.forEach(line => {
+        const st = computeLinePeriodOee(line, dt, false);
+        if(!st.hasData && !dFilter) return;
+        dRowsHtml += `
+          <tr>
+            <td><strong>${esc(dt)}</strong></td>
+            <td><strong>${esc(line)}</strong></td>
+            <td>${num(st.avgSpeed)} m/min</td>
+            <td>4,320</td>
+            <td>${num(st.runMins)} / <span style="color:var(--red)">${num(st.downtimeMins)}</span></td>
+            <td>${num(st.goodM)}m / ${num(st.rejM)}m</td>
+            <td>${num(st.availability)}%</td>
+            <td>${num(st.performance)}%</td>
+            <td>${num(st.quality)}%</td>
+            <td>${oeeBadge(st.oee, st.hasData)}</td>
+          </tr>
+        `;
+      });
+    });
+    tableWrap.innerHTML = dRowsHtml ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Machine Line</th>
+            <th>Line Speed</th>
+            <th>Planned (stream-mins)</th>
+            <th>Run / DT (stream-mins)</th>
+            <th>Good / Rej (m)</th>
+            <th>Avail %</th>
+            <th>Perf %</th>
+            <th>Qual %</th>
+            <th>Daily OEE</th>
+          </tr>
+        </thead>
+        <tbody>${dRowsHtml}</tbody>
+      </table>
+    ` : '<div class="empty">No machine activity logged for the selected date/line filter.</div>';
+  } else if(viewMode === 'monthly'){
+    const monthsToShow = mFilter ? [mFilter] : sortedMonths;
+    if(!monthsToShow.length){
+      tableWrap.innerHTML = '<div class="empty">No monthly records available for Machine-Wise Monthly OEE.</div>';
+      return;
+    }
+    let mmRowsHtml = '';
+    monthsToShow.forEach(ym => {
+      targetLines.forEach(line => {
+        const st = computeLinePeriodOee(line, ym, true);
+        if(!st.hasData && !mFilter) return;
+        mmRowsHtml += `
+          <tr>
+            <td><strong>${esc(ym)}</strong></td>
+            <td><strong>${esc(line)}</strong></td>
+            <td>${num(st.avgSpeed)} m/min</td>
+            <td>${num(st.plannedMins)}</td>
+            <td>${num(st.runMins)} / <span style="color:var(--red)">${num(st.downtimeMins)}</span></td>
+            <td>${num(st.goodM)}m / ${num(st.rejM)}m</td>
+            <td>${num(st.availability)}%</td>
+            <td>${num(st.performance)}%</td>
+            <td>${num(st.quality)}%</td>
+            <td>${oeeBadge(st.oee, st.hasData)}</td>
+          </tr>
+        `;
+      });
+    });
+    tableWrap.innerHTML = mmRowsHtml ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Machine Line</th>
+            <th>Avg Speed</th>
+            <th>Planned (4320/day)</th>
+            <th>Run / DT (stream-mins)</th>
+            <th>Good / Rej (m)</th>
+            <th>Avail %</th>
+            <th>Perf %</th>
+            <th>Qual %</th>
+            <th>Monthly OEE</th>
+          </tr>
+        </thead>
+        <tbody>${mmRowsHtml}</tbody>
+      </table>
+    ` : '<div class="empty">No machine activity logged for the selected month/line filter.</div>';
+  }
 }
 
 function renderDashboard(){
@@ -541,6 +1741,7 @@ function renderDashboard(){
     `).join('') : '<div class="empty" style="grid-column:1/-1">No active dies match. Change the status filter or add active dies in Die master.</div>';
   }
 
+  renderOeeDashboard();
   populateYieldDieFilter();
   populateMonthYieldFilters();
   renderDayWiseYield();
@@ -586,7 +1787,7 @@ function renderMonthWiseYield(){
     if(dieFilter && p.dieId !== dieFilter) return;
     if(!p.date || p.date.length < 7) return;
 
-    let ym = p.date.slice(0, 7); // YYYY-MM
+    let ym = p.date.slice(0, 7);
     let y = ym.slice(0, 4);
     if(!/^\d{4}-\d{2}$/.test(ym)) return;
     if(yearFilter && y !== yearFilter) return;
@@ -694,7 +1895,7 @@ function renderDayWiseYield(){
 
   let now = new Date();
   let currYear = now.getFullYear();
-  let currMonth = now.getMonth(); // 0-indexed
+  let currMonth = now.getMonth();
 
   let prevDateObj = new Date(currYear, currMonth - 1, 1);
   let prevYear = prevDateObj.getFullYear();
@@ -768,7 +1969,6 @@ function renderDayWiseYield(){
 
   let htmlSections = '';
 
-  // Current Month Section
   htmlSections += `<tr class="group-header-row"><td colspan="7">🟢 Current Month: ${currentMonthTitle}</td></tr>`;
   if(currentDates.length > 0){
     htmlSections += buildRows(currentMonthMap, currentDates);
@@ -776,7 +1976,6 @@ function renderDayWiseYield(){
     htmlSections += `<tr><td colspan="7" style="text-align:center; color:var(--muted); font-style:italic; padding: 12px;">No production records for current month</td></tr>`;
   }
 
-  // Previous Month Section
   htmlSections += `<tr class="group-header-row"><td colspan="7">🔵 Previous Month: ${previousMonthTitle}</td></tr>`;
   if(previousDates.length > 0){
     htmlSections += buildRows(previousMonthMap, previousDates);
@@ -1245,8 +2444,56 @@ function saveSettings(){
   db.settings.warn = Number($('sWarn').value);
   db.settings.crit = Number($('sCrit').value);
   db.settings.popup = $('sPopup').value;
+  db.settings.autoBackup5pm = $('sAutoBackup') ? $('sAutoBackup').value : 'on';
   save();
+  updateAutoBackupUI();
   alert('Settings saved.');
+}
+
+function updateAutoBackupUI(){
+  const enabled = (db.settings?.autoBackup5pm ?? 'on') !== 'off';
+  if($('sAutoBackup')) $('sAutoBackup').value = enabled ? 'on' : 'off';
+  if($('sWarn') && document.activeElement !== $('sWarn')) $('sWarn').value = db.settings?.warn ?? 95;
+  if($('sCrit') && document.activeElement !== $('sCrit')) $('sCrit').value = db.settings?.crit ?? 100;
+  if($('sPopup') && document.activeElement !== $('sPopup')) $('sPopup').value = db.settings?.popup ?? 'once';
+
+  const lastDate = localStorage.getItem('keci_last_5pm_backup_date') || 'Never';
+  if($('autoBackupStatusText')){
+    $('autoBackupStatusText').textContent = enabled
+      ? `Active while page is open (17:00 local time) • Last auto-backup: ${lastDate}`
+      : `Disabled • Last auto-backup: ${lastDate}`;
+  }
+}
+
+function triggerScheduledBackupDownload(){
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pultrusion_die_monitor_autobackup_' + today() + '_1700.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function checkFivePmAutoBackup(){
+  updateAutoBackupUI();
+  const enabled = (db.settings?.autoBackup5pm ?? 'on') !== 'off';
+  if(!enabled) return;
+  if(!Array.isArray(db.dies)) return;
+
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const dateStr = today();
+  const lastBackupDate = localStorage.getItem('keci_last_5pm_backup_date');
+
+  if(hours === 17 && minutes >= 0 && lastBackupDate !== dateStr){
+    localStorage.setItem('keci_last_5pm_backup_date', dateStr);
+    triggerScheduledBackupDownload();
+    updateAutoBackupUI();
+  }
 }
 
 function exportData(){
@@ -1269,6 +2516,7 @@ function importBackup(e){
       let parsed = JSON.parse(evt.target.result);
       if(parsed && Array.isArray(parsed.dies)){
         db = parsed;
+        ensureMachineStateShape();
         save();
         alert('Data imported successfully.');
       } else {
@@ -1422,6 +2670,8 @@ function exportMaintenanceCSV(){
 
 function loadDemo(){
   if(confirm('Load demo data? This will overwrite existing records.')){
+    const yDate = getYesterdayDate();
+    const tDate = today();
     db = {
       dies: [
         {id:'DIE-2', revision:'Rev 01', profile:'Cable Tray 100mm', size:'A', life:25000, warn:95, crit:100, base:2000, active:'Active', notes:'Main production die'},
@@ -1432,16 +2682,25 @@ function loadDemo(){
         {id:'DIE-1', revision:'Rev 02', profile:'Channel 50x50', size:'B', life:30000, warn:95, crit:100, base:31000, active:'Active', notes:'Exceeded approved life - inspect'}
       ],
       production: [
-        {id:'PROD-1', date:getYesterdayDate(), dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'Line-01', shift:'1st', length:4500, rejection:150, operator:'Ramesh', remarks:'Smooth run'},
-        {id:'PROD-2', date:getYesterdayDate(), dieId:'DIE-2', revision:'Rev 01', side:'B', machine:'Line-02', shift:'2nd', length:3800, rejection:90, operator:'Suresh', remarks:'Smooth run'},
-        {id:'PROD-3', date:today(), dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'Line-03', shift:'1st', length:1200, rejection:30, operator:'Mahesh', remarks:'Minor chatter'}
+        {id:'PROD-1', date:yDate, dieId:'DIE-2', revision:'Rev 01', side:'A', machine:'L-1', shift:'1st', length:420, rejection:15, operator:'Ramesh', remarks:'Smooth run on L-1'},
+        {id:'PROD-2', date:yDate, dieId:'DIE-2', revision:'Rev 01', side:'B', machine:'L-2', shift:'2nd', length:360, rejection:10, operator:'Suresh', remarks:'Smooth run on L-2'},
+        {id:'PROD-3', date:tDate, dieId:'DIE-10', revision:'Rev 00', side:'A', machine:'L-3', shift:'1st', length:280, rejection:8, operator:'Mahesh', remarks:'Minor chatter'}
       ],
       maintenance: [
-        {id:'MAINT-1', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'A', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'},
-        {id:'MAINT-2', date:today(), dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
+        {id:'MAINT-1', date:tDate, dieId:'DIE-1', revision:'Rev 02', side:'A', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'},
+        {id:'MAINT-2', date:tDate, dieId:'DIE-1', revision:'Rev 02', side:'B', type:'Inspection', owner:'Tool Room QC', cost:0, disposition:'Hold by QC', notes:'Surface wear noticed near entry radius.'}
       ],
-      settings: {warn:95, crit:100, popup:'once'}
+      machineRunLogs: [
+        {id:'MR-2', date:yDate, line:'L-2', stream:'S-2', status:'Running', speed:1.0, plannedMins:4320, rawDowntimeMins:90, downtimeMins:90, runMins:4230, streams:{'S-1':'Running','S-2':'Running','S-3':'Running'}, stopDateTime:yDate+'T11:30', resumeDateTime:yDate+'T13:00', reason:'S-2 puller alignment & die clean'},
+        {id:'MR-3', date:tDate, line:'L-3', stream:'S-3', status:'Stopped', speed:1.0, plannedMins:4320, rawDowntimeMins:0, downtimeMins:0, runMins:4320, streams:{'S-1':'Running','S-2':'Running','S-3':'Stopped'}, stopDateTime:tDate+'T09:15', resumeDateTime:'', reason:'Stream S-3 offline for setup'}
+      ],
+      lineStates: createDefaultLineStates(),
+      settings: {warn:95, crit:100, popup:'once', autoBackup5pm:'on'}
     };
+    db.lineStates['L-3'].streams['S-3'] = 'Stopped';
+    db.lineStates['L-3'].streamStopTimes['S-3'] = tDate + 'T09:15';
+    db.lineStates['L-3'].stopDateTime = tDate + 'T09:15';
+    db.lineStates['L-3'].reason = 'Stream S-3 offline for setup';
     save();
     alert('Demo data loaded.');
   }
@@ -1449,14 +2708,17 @@ function loadDemo(){
 
 function clearAll(){
   if(confirm('Are you sure you want to clear all data?')){
-    db = {dies:[], production:[], maintenance:[], settings:{warn:95, crit:100, popup:'once'}};
+    db = {dies:[], production:[], maintenance:[], machineRunLogs:[], lineStates:createDefaultLineStates(), settings:{warn:95, crit:100, popup:'once', autoBackup5pm:'on'}};
     save();
     alert('All data cleared.');
   }
 }
 
 // Initialize on load
+ensureMachineStateShape();
 loadFirebaseData();
+checkFivePmAutoBackup();
+setInterval(checkFivePmAutoBackup, 30000);
 </script>
 </body>
 </html>
