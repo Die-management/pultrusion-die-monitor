@@ -312,7 +312,7 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
     <div class="panel-head">
       <div>
         <h2>Line &amp; Stream Live Status Matrix (L-1 to L-8)</h2>
-        <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams) • Set line speed (m/min per stream) and mark individual streams S-1, S-2, S-3 or entire lines Running / Stopped</span>
+        <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams) • Set actual running speed and ideal standard speed (m/min per stream), then mark individual streams S-1, S-2, S-3 or entire lines Running / Stopped</span>
       </div>
       <div class="filters">
         <button class="btn secondary small" onclick="saveLineMatrixSnapshot()">💾 Save Current Status Snapshot</button>
@@ -352,8 +352,8 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
 <section id="tab-settings" class="hidden">
 <div class="panel"><div class="panel-head"><h2>Alert settings</h2></div><div class="panel-body"><div class="form-grid">
 <div class="field"><label>Default warning threshold (%)</label><input id="sWarn" type="number" min="1" max="100" value="95"></div><div class="field"><label>Default critical threshold (%)</label><input id="sCrit" type="number" min="1" max="200" value="100"></div><div class="field"><label>Popup behaviour</label><select id="sPopup"><option value="once">Show once per page session per die</option><option value="always">Show whenever critical dies exist</option><option value="off">Dashboard banner only</option></select></div>
-<div class="field"><label>Daily 5:00 PM auto-backup</label><select id="sAutoBackup"><option value="on">Enabled (Daily at 17:00)</option><option value="off">Disabled</option></select><small class="sub" id="autoBackupStatusText">Checks every 30s while tab is open</small></div>
-</div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Data is saved in local browser storage &amp; Firebase. Download regular backups.</p></div></div>
+<div class="field"><label>Daily cloud backup</label><select id="sAutoBackup"><option value="on">Enabled (first connection each day)</option><option value="off">Disabled</option></select><small class="sub" id="autoBackupStatusText">Cloud backup status will appear here</small></div>
+</div><div class="form-actions"><button class="btn" onclick="saveSettings()">Save settings</button><button class="btn secondary" onclick="downloadBackup()">Download backup</button><button class="btn secondary" onclick="showCloudHistory()">View change history</button><button class="btn secondary" onclick="restoreLastVersion()">Restore previous version</button><label class="btn secondary" for="importFile">Import backup</label><input id="importFile" class="hidden" type="file" accept=".json,application/json" onchange="importBackup(event)"></div><p class="note">Cloud sync uses conflict-aware Firestore transactions. Daily cloud snapshots and recoverable change history are stored in Firestore while the app is in use. Keep an external JSON backup as an additional safeguard.</p></div></div>
 <div class="panel"><div class="panel-head"><h2>Demo data</h2></div><div class="panel-body"><p>Load sample dies and production to explore the dashboard. This will replace current data.</p><button class="btn" onclick="loadDemo()">Load / reset to demo data</button> <button class="btn danger" onclick="clearAll()">Clear all saved data</button></div></div>
 </section>
 
@@ -384,7 +384,8 @@ function createDefaultLineStates(){
   LINES.forEach(line => {
     obj[line] = {
       status: 'Running',
-      speed: 1.0, // m/min
+      speed: 1.0, // actual running speed, m/min
+      idealSpeed: null, // approved standard speed for this line, m/min
       streams: { 'S-1': 'Running', 'S-2': 'Running', 'S-3': 'Running' },
       streamStopTimes: { 'S-1': '', 'S-2': '', 'S-3': '' },
       stopDateTime: '',
@@ -400,12 +401,18 @@ let db = {
   production:[],
   maintenance:[],
   machineRunLogs:[],
+  machineRunLogDeletions:[],
   lineStates: createDefaultLineStates(),
   settings:{warn:95, crit:100, popup:'once', autoBackup5pm:'on'}
 };
 let popupSeen = new Set();
 let settingsUnlocked = false;
 let dieGridMinimized = false;
+// Cloud sync state: the last confirmed server copy is the base for 3-way conflict merging.
+let lastSyncedDb = null;
+let cloudSyncReady = false;
+let cloudSaveQueue = Promise.resolve();
+let cloudSyncError = '';
 const SETTINGS_PASSWORD = "keci123";
 
 const $ = id => document.getElementById(id);
@@ -441,12 +448,15 @@ function toggleDieGrid(){
 
 function ensureMachineStateShape(){
   if(!Array.isArray(db.machineRunLogs)) db.machineRunLogs = [];
+  if(!Array.isArray(db.machineRunLogDeletions)) db.machineRunLogDeletions = [];
+  enforceMachineRunLogDeletions(db);
   if(!db.lineStates || typeof db.lineStates !== 'object') db.lineStates = createDefaultLineStates();
   LINES.forEach(line => {
     if(!db.lineStates[line]){
       db.lineStates[line] = {
         status:'Running',
         speed:1.0,
+        idealSpeed:null,
         streams:{'S-1':'Running','S-2':'Running','S-3':'Running'},
         streamStopTimes:{'S-1':'','S-2':'','S-3':''},
         stopDateTime:'',
@@ -461,39 +471,196 @@ function ensureMachineStateShape(){
         if(db.lineStates[line].streamStopTimes[s] == null) db.lineStates[line].streamStopTimes[s] = '';
       });
       if(db.lineStates[line].speed == null || Number(db.lineStates[line].speed) <= 0) db.lineStates[line].speed = 1.0;
+      if(db.lineStates[line].idealSpeed === undefined) db.lineStates[line].idealSpeed = null;
+      if(db.lineStates[line].idealSpeed !== null && (!Number.isFinite(Number(db.lineStates[line].idealSpeed)) || Number(db.lineStates[line].idealSpeed) <= 0)) db.lineStates[line].idealSpeed = null;
       const anyStreamRunning = STREAMS.some(s => db.lineStates[line].streams[s] === 'Running');
       db.lineStates[line].status = anyStreamRunning ? 'Running' : 'Stopped';
     }
   });
 }
 
+// Stable identities for merging records edited by different employees.
+function cloudRecordKey(value, collectionName, index){
+  if(collectionName === 'dies') return 'die:' + makeKey(value.id, value.revision, value.size);
+  if(value && value.id != null) return 'id:' + String(value.id);
+  return 'index:' + index;
+}
+function jsonEqual(a,b){ return JSON.stringify(a) === JSON.stringify(b); }
+function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date); }
+function mergeThreeWayCore(base, local, remote, path){
+  if(jsonEqual(local, base)) return remote;
+  if(jsonEqual(remote, base)) return local;
+  if(Array.isArray(base) && Array.isArray(local) && Array.isArray(remote)){
+    const field = (path || '').split('.').pop();
+    const bm=new Map(), lm=new Map(), rm=new Map();
+    base.forEach((v,i)=>bm.set(cloudRecordKey(v,field,i),v));
+    local.forEach((v,i)=>lm.set(cloudRecordKey(v,field,i),v));
+    remote.forEach((v,i)=>rm.set(cloudRecordKey(v,field,i),v));
+    const keys=[...new Set([...bm.keys(),...lm.keys(),...rm.keys()])];
+    const out=[];
+    keys.forEach(k=>{
+      const b=bm.get(k), l=lm.get(k), r=rm.get(k);
+      const hasB=bm.has(k), hasL=lm.has(k), hasR=rm.has(k);
+      if(!hasB){
+        if(hasL && hasR) out.push(mergeThreeWayCore(undefined,l,r,path+'.'+k));
+        else if(hasL) out.push(l); else if(hasR) out.push(r);
+      } else if(!hasL && !hasR){
+        // Both sides deleted the same record.
+      } else if(!hasL){
+        // Preserve a remote edit if it raced with a local delete; never silently discard it.
+        if(!jsonEqual(r,b)) out.push(r);
+      } else if(!hasR){
+        if(!jsonEqual(l,b)) out.push(l);
+      } else out.push(mergeThreeWayCore(b,l,r,path+'.'+k));
+    });
+    return out;
+  }
+  if(isPlainObject(base) && isPlainObject(local) && isPlainObject(remote)){
+    const out={};
+    const keys=new Set([...Object.keys(base),...Object.keys(local),...Object.keys(remote)]);
+    keys.forEach(k=>{
+      const hb=Object.prototype.hasOwnProperty.call(base,k), hl=Object.prototype.hasOwnProperty.call(local,k), hr=Object.prototype.hasOwnProperty.call(remote,k);
+      const v=mergeThreeWayCore(hb?base[k]:undefined,hl?local[k]:undefined,hr?remote[k]:undefined,(path?path+'.':'')+k);
+      if(v !== undefined) out[k]=v;
+    });
+    return out;
+  }
+  // Same field changed on both clients: latest transaction wins for that field only.
+  return local;
+}
+// A deletion marker is replicated to every browser and wins over stale copies of a log.
+// This prevents Firestore snapshot updates or another employee's older browser state
+// from resurrecting a row that an employee intentionally deleted.
+function enforceMachineRunLogDeletions(data){
+  if(!data || typeof data !== 'object') return data;
+  if(!Array.isArray(data.machineRunLogDeletions)) data.machineRunLogDeletions=[];
+  if(!Array.isArray(data.machineRunLogs)) data.machineRunLogs=[];
+  const deletedIds=new Set(data.machineRunLogDeletions.map(x=>String(x && x.id || '')).filter(Boolean));
+  if(deletedIds.size) data.machineRunLogs=data.machineRunLogs.filter(x=>!deletedIds.has(String(x && x.id || '')));
+  return data;
+}
+function mergeThreeWay(base, local, remote, path){
+  const result=mergeThreeWayCore(base,local,remote,path);
+  return path === 'root' ? enforceMachineRunLogDeletions(result) : result;
+}
+function cloneData(value){ return JSON.parse(JSON.stringify(value)); }
+function firestorePayloadSize(value){ return new Blob([JSON.stringify(value)]).size; }
+function assertFirestoreSize(value, label){
+  // Firestore's hard document limit is 1 MiB; leave headroom for metadata/indexing.
+  if(firestorePayloadSize(value) > 850000) throw new Error(label + ' is over the safe 850 KB document limit. No write was made. Export a backup and move to a split-collection architecture before adding more data.');
+}
+function cloudActor(){ return firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : 'unverified-browser-session'; }
 function loadFirebaseData(){
   dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
     if(doc.exists){
-      let x = doc.data();
-      if(x && Array.isArray(x.dies)){
-        db = {...db, ...x, settings: {...db.settings, ...(x.settings || {})}};
-        ensureMachineStateShape();
-        renderAll();
+      const remote=doc.data();
+      if(remote && Array.isArray(remote.dies)){
+        if(!cloudSyncReady){
+          db={...db,...remote,settings:{...db.settings,...(remote.settings||{})}};
+          lastSyncedDb=cloneData(db); cloudSyncReady=true;
+          ensureMachineStateShape(); renderAll();
+          createDailyCloudBackup().catch(err=>console.error('Daily cloud backup:',err));
+        } else {
+          const local=cloneData(db);
+          const merged=mergeThreeWay(lastSyncedDb || remote,local,remote,'root');
+          lastSyncedDb=cloneData(remote);
+          db=merged; ensureMachineStateShape(); renderAll();
+          if(!jsonEqual(merged,remote)) saveCloud();
+        }
       }
     } else {
+      // First-time initialization only. Never replace an existing document with demo/local data.
       ensureMachineStateShape();
-      saveCloud();
+      const initial=cloneData(db);
+      dbCloud.runTransaction(async tx=>{
+        const ref=dbCloud.collection('monitorData').doc('mainState');
+        const current=await tx.get(ref);
+        if(!current.exists){ assertFirestoreSize(initial,'Initial database'); tx.set(ref,initial); }
+      }).then(async()=>{
+        const confirmed=(await dbCloud.collection('monitorData').doc('mainState').get()).data() || initial;
+        db={...db,...confirmed,settings:{...db.settings,...(confirmed.settings||{})}};
+        lastSyncedDb=cloneData(db); cloudSyncReady=true; ensureMachineStateShape(); renderAll(); createDailyCloudBackup().catch(console.error);
+      })
+        .catch(err=>{ cloudSyncError=err.message; alert('Firebase initialization was not completed. Existing cloud data was not overwritten: '+err.message); });
     }
   }, err => {
-    console.error("Firestore sync error:", err);
+    cloudSyncError=err.message;
+    console.error('Firestore sync error:',err);
+    alert('Firebase connection error: '+err.message+'. Changes may not be synchronized.');
   });
 }
-
-function saveCloud(){
-  ensureMachineStateShape();
-  dbCloud.collection('monitorData').doc('mainState').set(db)
-    .then(() => { renderAll(); })
-    .catch(err => { alert("Error saving data to cloud: " + err.message); });
+function createDailyCloudBackup(){
+  if((db.settings?.autoBackup5pm ?? 'on') === 'off') return Promise.resolve();
+  if(!cloudSyncReady || !lastSyncedDb) return Promise.resolve();
+  const day=today();
+  const backupRef=dbCloud.collection('monitorDailyBackups').doc(day);
+  const mainRef=dbCloud.collection('monitorData').doc('mainState');
+  return dbCloud.runTransaction(async tx=>{
+    const backup=await tx.get(backupRef);
+    if(backup.exists) return;
+    const main=await tx.get(mainRef);
+    if(!main.exists) return;
+    const snapshot=main.data();
+    assertFirestoreSize(snapshot,'Daily backup');
+    tx.set(backupRef,{createdAt:firebase.firestore.FieldValue.serverTimestamp(),date:day,source:'KECI Die Life Monitor',snapshot});
+  });
 }
-
-function save(){
-  saveCloud();
+async function persistCloudSnapshot(){
+  if(!cloudSyncReady){ throw new Error('Cloud connection is not ready. Wait for Firebase synchronization before saving.'); }
+  ensureMachineStateShape();
+  const local=cloneData(db);
+  const base=cloneData(lastSyncedDb || {});
+  const mainRef=dbCloud.collection('monitorData').doc('mainState');
+  const auditRef=dbCloud.collection('monitorChangeHistory').doc();
+  await dbCloud.runTransaction(async tx=>{
+    const mainSnap=await tx.get(mainRef);
+    const remote=mainSnap.exists ? mainSnap.data() : base;
+    const merged=mergeThreeWay(base,local,remote,'root');
+    assertFirestoreSize(merged,'Main database');
+    // Store the complete pre-change state for recovery. If it cannot fit safely, abort the save.
+    const audit={createdAt:firebase.firestore.FieldValue.serverTimestamp(),actor:cloudActor(),action:'SAVE',source:'KECI Die Life Monitor',snapshot:remote};
+    assertFirestoreSize(audit,'Change-history snapshot');
+    tx.set(auditRef,audit);
+    tx.set(mainRef,merged);
+  });
+  const confirmed=(await mainRef.get()).data();
+  lastSyncedDb=cloneData(confirmed);
+  // Merge any edits made while the transaction was in flight instead of overwriting them.
+  db=mergeThreeWay(confirmed,cloneData(db),confirmed,'root');
+  cloudSyncError='';
+  renderAll();
+  createDailyCloudBackup().catch(err=>console.error('Daily cloud backup:',err));
+}
+function saveCloud(){
+  cloudSaveQueue=cloudSaveQueue.then(()=>persistCloudSnapshot()).catch(err=>{
+    cloudSyncError=err.message;
+    console.error('Safe Firebase save failed:',err);
+    alert('Data was NOT confirmed as saved to Firebase: '+err.message+'\n\nDo not close this page until the connection is restored and the save succeeds. Download a JSON backup if possible.');
+  });
+  return cloudSaveQueue;
+}
+function save(){ return saveCloud(); }
+async function showCloudHistory(){
+  try{
+    const snap=await dbCloud.collection('monitorChangeHistory').orderBy('createdAt','desc').limit(20).get();
+    if(snap.empty){ alert('No cloud change-history snapshots are available yet.'); return; }
+    const rows=[];
+    snap.forEach(doc=>{ const x=doc.data(); const when=x.createdAt && x.createdAt.toDate ? x.createdAt.toDate().toLocaleString() : 'Timestamp pending'; rows.push(when+' — '+(x.actor||'unknown user')+' — '+(x.action||'SAVE')); });
+    alert('Latest recoverable cloud snapshots (newest first):\n\n'+rows.join('\n'));
+  }catch(err){ alert('Unable to load change history: '+err.message); }
+}
+async function restoreLastVersion(){
+  if(!confirm('Restore the most recent pre-change cloud snapshot? The current live data will first be saved into change history.')) return;
+  try{
+    const snap=await dbCloud.collection('monitorChangeHistory').orderBy('createdAt','desc').limit(1).get();
+    if(snap.empty){ alert('No recoverable history is available.'); return; }
+    const previous=snap.docs[0].data().snapshot;
+    if(!previous || !Array.isArray(previous.dies)){ alert('The selected history snapshot is invalid.'); return; }
+    db=cloneData(previous); ensureMachineStateShape(); await saveCloud();
+    const verify=(await dbCloud.collection('monitorData').doc('mainState').get()).data();
+    if(!verify || !jsonEqual(verify,previous)) throw new Error('Firebase did not confirm the restored snapshot.');
+    alert('Previous snapshot restored and verified in Firebase. Check the dashboard and records before continuing work.');
+  }catch(err){ alert('Restore failed: '+err.message); }
 }
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -725,8 +892,14 @@ function renderLineMatrix(){
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0">
-          <label style="font-size:12px;font-weight:700;color:#475569">Line Speed (m/min):</label>
-          <input type="number" step="0.01" min="0.01" value="${esc(st.speed)}" onchange="updateLineSpeed('${line}', this.value)" style="width:90px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-weight:700">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:700;color:#475569">Actual Speed (m/min):</label>
+            <input type="number" step="0.01" min="0.01" value="${esc(st.speed)}" onchange="updateLineSpeed('${line}', this.value)" style="width:90px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-weight:700">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:700;color:#1d4ed8">Ideal Speed (m/min):</label>
+            <input type="number" step="0.01" min="0.01" placeholder="Set standard" value="${esc(st.idealSpeed ?? '')}" onchange="updateLineIdealSpeed('${line}', this.value)" style="width:110px;padding:5px 8px;border:1px solid #93c5fd;border-radius:6px;font-weight:700">
+          </div>
         </div>
 
         <div class="stream-row">
@@ -761,6 +934,29 @@ function updateLineSpeed(line, val){
   if(isNaN(speed) || speed <= 0) return;
   db.lineStates[line].speed = speed;
   save();
+}
+
+function updateLineIdealSpeed(line, val){
+  ensureMachineStateShape();
+  if(!LINES.includes(line)) return;
+  const textVal = String(val ?? '').trim();
+  if(!textVal){
+    db.lineStates[line].idealSpeed = null;
+    save();
+    renderLineMatrix();
+    renderOeeDashboard();
+    return;
+  }
+  const speed = Number(textVal);
+  if(!Number.isFinite(speed) || speed <= 0){
+    alert('Enter a valid Ideal Speed greater than 0 m/min for ' + line + '.');
+    renderLineMatrix();
+    return;
+  }
+  db.lineStates[line].idealSpeed = speed;
+  save();
+  renderLineMatrix();
+  renderOeeDashboard();
 }
 
 function openStopConfirmModal(line, targetStream){
@@ -1123,7 +1319,14 @@ function saveEditedMachineRun(id){
 
 function deleteMachineRun(id){
   if(confirm('Delete this machine run / downtime log entry?')){
-    db.machineRunLogs = db.machineRunLogs.filter(x => x.id !== id);
+    const logId=String(id);
+    db.machineRunLogs = db.machineRunLogs.filter(x => String(x.id) !== logId);
+    if(!Array.isArray(db.machineRunLogDeletions)) db.machineRunLogDeletions=[];
+    if(!db.machineRunLogDeletions.some(x=>String(x && x.id)===logId)){
+      db.machineRunLogDeletions.push({id:logId,deletedAt:Date.now()});
+    }
+    enforceMachineRunLogDeletions(db);
+    renderMachineRunLog();
     save();
   }
 }
@@ -1326,6 +1529,47 @@ function exportMachineRunCSV(){
 /* ============================================================================
    OEE CALCULATION ENGINE (4320 STREAM-MINS/DAY = 1440 MIN × 3 STREAMS)
    ============================================================================ */
+// Production day runs from 08:00 on the selected date to 08:00 the following date.
+function getOeeProductionDayKey(dateTimeValue){
+  if(!dateTimeValue) return '';
+  const dt = new Date(dateTimeValue);
+  if(isNaN(dt.getTime())) return '';
+  if(dt.getHours() < 8) dt.setDate(dt.getDate() - 1);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getOeeDayStart(dayKey){
+  const [y,m,d] = dayKey.split('-').map(Number);
+  const dt = new Date(y, m - 1, d, 8, 0, 0, 0);
+  return dt.getTime();
+}
+
+// Split a stop interval across every 08:00-to-08:00 production day it touches.
+// Result is raw clock minutes per day; caller multiplies by stream count where applicable.
+function splitDowntimeByOeeDay(stopDateTime, resumeDateTime){
+  const result = {};
+  if(!stopDateTime) return result;
+  const stopMs = new Date(stopDateTime).getTime();
+  const endMs = resumeDateTime ? new Date(resumeDateTime).getTime() : Date.now();
+  if(!Number.isFinite(stopMs) || !Number.isFinite(endMs) || endMs <= stopMs) return result;
+
+  let cursor = stopMs;
+  while(cursor < endMs){
+    const cursorDate = new Date(cursor);
+    const key = getOeeProductionDayKey(cursorDate);
+    if(!key) break;
+    const nextBoundary = getOeeDayStart(key) + 24 * 60 * 60 * 1000;
+    const segmentEnd = Math.min(endMs, nextBoundary);
+    const mins = Math.max(0, (segmentEnd - cursor) / 60000);
+    if(mins > 0) result[key] = (result[key] || 0) + mins;
+    cursor = segmentEnd;
+  }
+  return result;
+}
+
 function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
   ensureMachineStateShape();
   const matchesPeriod = dStr => {
@@ -1334,110 +1578,102 @@ function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
     return isMonthly ? dStr.startsWith(dateOrMonthFilter) : dStr === dateOrMonthFilter;
   };
 
-  const lineLogs = db.machineRunLogs.filter(r => r.line === line && matchesPeriod(r.date));
+  // Use the operational 08:00-to-08:00 date for timestamped downtime.
+  const lineLogs = db.machineRunLogs.filter(r => normalizeLineCode(r.line) === line);
   const prodLogs = db.production.filter(p => normalizeLineCode(p.machine) === line && matchesPeriod(p.date));
-
-  // Group logs by date so each active day has 4,320 planned stream-minutes (1,440 min × 3 streams)
   const dayDowntimeMap = {};
   const daySpeedMap = {};
+  const ensureDay = (key, actualSpeed) => {
+    if(!key) return;
+    if(!Object.prototype.hasOwnProperty.call(dayDowntimeMap, key)){
+      dayDowntimeMap[key] = 0;
+      daySpeedMap[key] = [];
+    }
+    if(Number(actualSpeed) > 0) daySpeedMap[key].push(Number(actualSpeed));
+  };
 
   lineLogs.forEach(r => {
-    const dKey = r.date || today();
-    if(!dayDowntimeMap[dKey]){
-      dayDowntimeMap[dKey] = 0;
-      daySpeedMap[dKey] = [];
-    }
     const isAllStreams = (r.stream === 'ALL' || String(r.stream || '').includes('All'));
-    const rawMins = Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
-    const rowStreamDt = r.stopDateTime
-      ? calcDowntimeMinutes(r.stopDateTime, r.resumeDateTime, r.stream, rawMins)
-      : Math.max(0, isAllStreams ? (rawMins * STREAMS.length) : rawMins);
-    dayDowntimeMap[dKey] += rowStreamDt;
-    daySpeedMap[dKey].push(Number(r.speed ?? db.lineStates[line]?.speed ?? 1.0));
-  });
-
-  prodLogs.forEach(p => {
-    const dKey = p.date || today();
-    if(!dayDowntimeMap[dKey]){
-      dayDowntimeMap[dKey] = 0;
-      daySpeedMap[dKey] = [Number(db.lineStates[line]?.speed ?? 1.0)];
+    const streamMultiplier = isAllStreams ? STREAMS.length : 1;
+    const actualSpeed = Number(r.speed ?? db.lineStates[line]?.speed ?? 0);
+    if(r.stopDateTime){
+      const split = splitDowntimeByOeeDay(r.stopDateTime, r.resumeDateTime);
+      Object.entries(split).forEach(([dayKey, rawMinutes]) => {
+        if(!matchesPeriod(dayKey)) return;
+        ensureDay(dayKey, actualSpeed);
+        dayDowntimeMap[dayKey] += rawMinutes * streamMultiplier;
+      });
+    } else {
+      // Legacy/imported records without timestamps retain stored downtime.
+      const dayKey = r.date || '';
+      if(!matchesPeriod(dayKey)) return;
+      ensureDay(dayKey, actualSpeed);
+      const rawMins = Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
+      const storedStreamMins = Number(r.downtimeMins);
+      dayDowntimeMap[dayKey] += Number.isFinite(storedStreamMins) && storedStreamMins > 0
+        ? storedStreamMins
+        : Math.max(0, rawMins * streamMultiplier);
     }
   });
 
-  const activeDays = Object.keys(dayDowntimeMap);
-  let goodM = 0;
-  let rejM = 0;
+  // Production dates are already tagged to their 08:00-to-08:00 production day.
+  prodLogs.forEach(p => ensureDay(p.date || '', db.lineStates[line]?.speed ?? 0));
+
+  const activeDays = Object.keys(dayDowntimeMap).filter(matchesPeriod);
+  let goodM = 0, rejM = 0;
   prodLogs.forEach(p => {
-    goodM += Number(p.length || 0);
-    rejM += Number(p.rejection || 0);
+    goodM += Math.max(0, Number(p.length || 0));
+    rejM += Math.max(0, Number(p.rejection || 0));
   });
 
+  const idealSpeedRaw = db.lineStates[line]?.idealSpeed;
+  const idealSpeed = Number(idealSpeedRaw);
+  const missingIdealSpeed = !Number.isFinite(idealSpeed) || idealSpeed <= 0;
   const hasData = activeDays.length > 0 || (goodM + rejM) > 0;
   if(!hasData){
     return {
-      hasData: false,
-      line,
-      plannedMins: 0,
-      runMins: 0,
-      downtimeMins: 0,
-      avgSpeed: db.lineStates[line]?.speed || 1.0,
-      goodM: 0,
-      rejM: 0,
-      availability: 0,
-      performance: 0,
-      quality: 0,
-      oee: 0
+      hasData:false, line, plannedMins:0, runMins:0, downtimeMins:0,
+      avgSpeed:Number(db.lineStates[line]?.speed || 0), idealSpeed:missingIdealSpeed ? null : idealSpeed,
+      missingIdealSpeed, idealCapacityM:0, goodM:0, rejM:0,
+      availability:0, performance:null, quality:0, oee:null
     };
   }
 
-  let plannedMins = 0;
-  let downtimeMins = 0;
-  let speedSum = 0;
-
-  activeDays.forEach(dKey => {
+  let plannedMins = 0, downtimeMins = 0, actualSpeedSum = 0;
+  activeDays.forEach(dayKey => {
     plannedMins += PLANNED_STREAM_MINS_PER_DAY;
-    downtimeMins += Math.min(PLANNED_STREAM_MINS_PER_DAY, dayDowntimeMap[dKey]);
-    const spArr = daySpeedMap[dKey];
-    speedSum += spArr.reduce((a,b)=>a+b,0) / spArr.length;
+    downtimeMins += Math.min(PLANNED_STREAM_MINS_PER_DAY, Math.max(0, dayDowntimeMap[dayKey]));
+    const speeds = daySpeedMap[dayKey];
+    actualSpeedSum += speeds.length
+      ? speeds.reduce((a,b)=>a+b,0) / speeds.length
+      : Number(db.lineStates[line]?.speed || 0);
   });
 
   const runMins = Math.max(0, plannedMins - downtimeMins);
-  const avgSpeed = activeDays.length > 0 ? (speedSum / activeDays.length) : Number(db.lineStates[line]?.speed || 1.0);
-
-  // Availability = Actual Run Stream-Mins / Planned Stream-Mins (4,320 stream-mins/day)
+  const avgSpeed = activeDays.length ? actualSpeedSum / activeDays.length : Number(db.lineStates[line]?.speed || 0);
   const availability = plannedMins > 0 ? Math.min(1, runMins / plannedMins) : 0;
-
-  // Quality = Good Production / (Good Production + Rejection)
   const totalOutput = goodM + rejM;
   const quality = totalOutput > 0 ? Math.min(1, goodM / totalOutput) : 1;
-
-  // Performance = Actual Total Output / (Actual Run Stream-Mins * Line Speed per stream)
-  const idealCapacityM = runMins * avgSpeed;
-  let performance = 0;
-  if(idealCapacityM > 0 && totalOutput > 0){
-    performance = Math.min(1, totalOutput / idealCapacityM);
-  }
-
-  const oee = availability * performance * quality;
+  // Speed is recorded as actual running speed. Theoretical capacity must use
+  // the separately configured ideal speed for this machine line.
+  const idealCapacityM = missingIdealSpeed ? 0 : runMins * idealSpeed;
+  const performance = !missingIdealSpeed && idealCapacityM > 0 && totalOutput > 0
+    ? totalOutput / idealCapacityM
+    : (missingIdealSpeed ? null : 0);
+  const oee = missingIdealSpeed ? null : availability * performance * quality;
 
   return {
-    hasData: true,
-    line,
-    plannedMins,
-    runMins,
-    downtimeMins,
-    avgSpeed,
-    goodM,
-    rejM,
-    availability: availability * 100,
-    performance: performance * 100,
-    quality: quality * 100,
-    oee: oee * 100
+    hasData:true, line, plannedMins, runMins, downtimeMins, avgSpeed,
+    idealSpeed:missingIdealSpeed ? null : idealSpeed, missingIdealSpeed, idealCapacityM,
+    goodM, rejM, availability:availability * 100,
+    performance:performance === null ? null : performance * 100,
+    quality:quality * 100, oee:oee === null ? null : oee * 100
   };
 }
 
-function oeeBadge(val, hasData){
+function oeeBadge(val, hasData, missingIdealSpeed=false){
   if(!hasData) return `<span class="status inactive">No Data</span>`;
+  if(missingIdealSpeed) return `<span class="status critical">Set Ideal Speed</span>`;
   const cls = val >= 75 ? 'oee-high' : val >= 50 ? 'oee-mid' : 'oee-low';
   return `<span class="oee-pill ${cls}">${num(val)}%</span>`;
 }
@@ -1455,6 +1691,13 @@ function renderOeeDashboard(){
     if(r.date){
       allDatesSet.add(r.date);
       if(r.date.length >= 7) allMonthsSet.add(r.date.slice(0, 7));
+    }
+    if(r.stopDateTime){
+      const splitDays = splitDowntimeByOeeDay(r.stopDateTime, r.resumeDateTime);
+      Object.keys(splitDays).forEach(dayKey => {
+        allDatesSet.add(dayKey);
+        if(dayKey.length >= 7) allMonthsSet.add(dayKey.slice(0, 7));
+      });
     }
   });
   db.production.forEach(p => {
@@ -1500,15 +1743,16 @@ function renderOeeDashboard(){
       sumDt += st.downtimeMins;
       sumGood += st.goodM;
       sumRej += st.rejM;
-      sumIdealCap += (st.runMins * st.avgSpeed);
+      sumIdealCap += st.idealCapacityM || 0;
     }
     return `
       <div class="oee-mini-box">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <strong>${esc(line)}</strong>
-          ${oeeBadge(st.oee, st.hasData)}
+          ${oeeBadge(st.oee, st.hasData, st.missingIdealSpeed)}
         </div>
-        <div class="sub">A: ${num(st.availability)}% • P: ${num(st.performance)}% • Q: ${num(st.quality)}%</div>
+        <div class="sub">A: ${num(st.availability)}% • P: ${st.missingIdealSpeed ? '—' : num(st.performance)+'%'} • Q: ${num(st.quality)}%</div>
+        <div class="sub">Actual: ${num(st.avgSpeed)} • Ideal: ${st.missingIdealSpeed ? 'Not set' : num(st.idealSpeed)} m/min</div>
         <div class="sub">Run: ${num(st.runMins)} / DT: ${num(st.downtimeMins)} stream-mins</div>
       </div>
     `;
@@ -1519,28 +1763,27 @@ function renderOeeDashboard(){
   // across the selected lines (not by averaging individual line percentages).
   const calculateOeeForPeriod = (period, monthly) => {
     let planned = 0, run = 0, good = 0, rejected = 0, idealCapacity = 0;
-    let hasData = false;
+    let hasData = false, missingIdealSpeed = false;
 
     targetLines.forEach(line => {
       const st = computeLinePeriodOee(line, period, monthly);
       if (!st.hasData) return;
       hasData = true;
+      if(st.missingIdealSpeed) missingIdealSpeed = true;
       planned += st.plannedMins;
       run += st.runMins;
       good += st.goodM;
       rejected += st.rejM;
-      idealCapacity += st.runMins * st.avgSpeed;
+      idealCapacity += st.idealCapacityM || 0;
     });
 
-    if (!hasData) return { value: 0, hasData: false, planned: 0, run: 0, good: 0, rejected: 0 };
+    if (!hasData) return { value:0, hasData:false, missingIdealSpeed:false, planned:0, run:0, good:0, rejected:0 };
+    if (missingIdealSpeed) return { value:null, hasData:true, missingIdealSpeed:true, planned, run, good, rejected };
     const availability = planned > 0 ? Math.min(1, run / planned) : 0;
     const output = good + rejected;
-    const performance = idealCapacity > 0 && output > 0 ? Math.min(1, output / idealCapacity) : 0;
+    const performance = idealCapacity > 0 && output > 0 ? output / idealCapacity : 0;
     const quality = output > 0 ? Math.min(1, good / output) : 1;
-    return {
-      value: availability * performance * quality * 100,
-      hasData, planned, run, good, rejected
-    };
+    return { value:availability * performance * quality * 100, hasData:true, missingIdealSpeed:false, planned, run, good, rejected };
   };
 
   const overallKpi = calculateOeeForPeriod(null, true);
@@ -1550,15 +1793,15 @@ function renderOeeDashboard(){
   const kpiCard = (label, result, detail) => `
     <div class="card" style="margin:0">
       <div class="metric-label">${label}</div>
-      <div class="metric" style="color:${!result.hasData?'#667085':result.value>=75?'#16834a':result.value>=50?'#b96b00':'#c62828'}">${result.hasData ? num(result.value)+'%' : '—'}</div>
+      <div class="metric" style="color:${(!result.hasData || result.missingIdealSpeed)?'#667085':result.value>=75?'#16834a':result.value>=50?'#b96b00':'#c62828'}">${result.hasData && !result.missingIdealSpeed ? num(result.value)+'%' : '—'}</div>
       <div class="sub">${detail}</div>
     </div>`;
 
   boxesWrap.innerHTML = `
     <div class="oee-kpi-grid" style="grid-template-columns:repeat(3,minmax(160px,1fr))">
-      ${kpiCard('Overall OEE', overallKpi, overallKpi.hasData ? `All recorded dates • ${num(overallKpi.run)} run stream-mins` : 'No OEE data recorded')}
-      ${kpiCard('Monthly OEE', monthlyKpi, monthlyKpi.hasData ? `${today().slice(0,7)} • Current month` : 'No data for current month')}
-      ${kpiCard('Daily OEE (Yesterday)', dailyKpi, dailyKpi.hasData ? `${yesterdayDate} • Previous day` : `No data recorded for ${yesterdayDate}`)}
+      ${kpiCard('Overall OEE', overallKpi, overallKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : overallKpi.hasData ? `All recorded dates • ${num(overallKpi.run)} run stream-mins` : 'No OEE data recorded')}
+      ${kpiCard('Monthly OEE', monthlyKpi, monthlyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : monthlyKpi.hasData ? `${today().slice(0,7)} • Current month` : 'No data for current month')}
+      ${kpiCard('Daily OEE (Yesterday)', dailyKpi, dailyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : dailyKpi.hasData ? `${yesterdayDate} • Previous day` : `No data recorded for ${yesterdayDate}`)}
     </div>
     <div class="oee-line-boxes">${lineBoxHtml}</div>
   `;
@@ -1579,7 +1822,7 @@ function renderOeeDashboard(){
       return;
     }
     const mRows = targetMonths.map(ym => {
-      let mPlan = 0, mRun = 0, mDt = 0, mGood = 0, mRej = 0, mIdeal = 0, activeLines = 0;
+      let mPlan = 0, mRun = 0, mDt = 0, mGood = 0, mRej = 0, mIdeal = 0, activeLines = 0, mMissingIdealSpeed = false;
       targetLines.forEach(line => {
         const st = computeLinePeriodOee(line, ym, true);
         if(st.hasData){
@@ -1589,14 +1832,15 @@ function renderOeeDashboard(){
           mDt += st.downtimeMins;
           mGood += st.goodM;
           mRej += st.rejM;
-          mIdeal += (st.runMins * st.avgSpeed);
+          mIdeal += st.idealCapacityM || 0;
+          if(st.missingIdealSpeed) mMissingIdealSpeed = true;
         }
       });
       const a = mPlan > 0 ? Math.min(100, (mRun / mPlan) * 100) : 0;
       const out = mGood + mRej;
       const q = out > 0 ? Math.min(100, (mGood / out) * 100) : 100;
-      const p = (mIdeal > 0 && out > 0) ? Math.min(100, (out / mIdeal) * 100) : 0;
-      const oee = (a / 100) * (p / 100) * (q / 100) * 100;
+      const p = (!mMissingIdealSpeed && mIdeal > 0 && out > 0) ? (out / mIdeal) * 100 : null;
+      const oee = mMissingIdealSpeed ? null : (a / 100) * ((p || 0) / 100) * (q / 100) * 100;
       return `
         <tr>
           <td><strong>${esc(ym)}</strong></td>
@@ -1605,9 +1849,9 @@ function renderOeeDashboard(){
           <td>${num(mRun)} / <span style="color:var(--red)">${num(mDt)}</span></td>
           <td>${num(mGood)} m (${num(mRej)} m rej)</td>
           <td><strong>${num(a)}%</strong></td>
-          <td><strong>${num(p)}%</strong></td>
+          <td><strong>${mMissingIdealSpeed ? '—' : num(p)+'%'}</strong></td>
           <td><strong>${num(q)}%</strong></td>
-          <td>${oeeBadge(oee, true)}</td>
+          <td>${oeeBadge(oee, true, mMissingIdealSpeed)}</td>
         </tr>
       `;
     }).join('');
@@ -1645,13 +1889,14 @@ function renderOeeDashboard(){
             <td><strong>${esc(dt)}</strong></td>
             <td><strong>${esc(line)}</strong></td>
             <td>${num(st.avgSpeed)} m/min</td>
+            <td>${st.missingIdealSpeed ? 'Not set' : num(st.idealSpeed)+' m/min'}</td>
             <td>4,320</td>
             <td>${num(st.runMins)} / <span style="color:var(--red)">${num(st.downtimeMins)}</span></td>
             <td>${num(st.goodM)}m / ${num(st.rejM)}m</td>
             <td>${num(st.availability)}%</td>
-            <td>${num(st.performance)}%</td>
+            <td>${st.missingIdealSpeed ? '—' : num(st.performance)+'%'}</td>
             <td>${num(st.quality)}%</td>
-            <td>${oeeBadge(st.oee, st.hasData)}</td>
+            <td>${oeeBadge(st.oee, st.hasData, st.missingIdealSpeed)}</td>
           </tr>
         `;
       });
@@ -1662,7 +1907,8 @@ function renderOeeDashboard(){
           <tr>
             <th>Date</th>
             <th>Machine Line</th>
-            <th>Line Speed</th>
+            <th>Actual Speed</th>
+            <th>Ideal Speed</th>
             <th>Planned (stream-mins)</th>
             <th>Run / DT (stream-mins)</th>
             <th>Good / Rej (m)</th>
@@ -1691,13 +1937,14 @@ function renderOeeDashboard(){
             <td><strong>${esc(ym)}</strong></td>
             <td><strong>${esc(line)}</strong></td>
             <td>${num(st.avgSpeed)} m/min</td>
+            <td>${st.missingIdealSpeed ? 'Not set' : num(st.idealSpeed)+' m/min'}</td>
             <td>${num(st.plannedMins)}</td>
             <td>${num(st.runMins)} / <span style="color:var(--red)">${num(st.downtimeMins)}</span></td>
             <td>${num(st.goodM)}m / ${num(st.rejM)}m</td>
             <td>${num(st.availability)}%</td>
-            <td>${num(st.performance)}%</td>
+            <td>${st.missingIdealSpeed ? '—' : num(st.performance)+'%'}</td>
             <td>${num(st.quality)}%</td>
-            <td>${oeeBadge(st.oee, st.hasData)}</td>
+            <td>${oeeBadge(st.oee, st.hasData, st.missingIdealSpeed)}</td>
           </tr>
         `;
       });
@@ -1708,7 +1955,8 @@ function renderOeeDashboard(){
           <tr>
             <th>Month</th>
             <th>Machine Line</th>
-            <th>Avg Speed</th>
+            <th>Actual Speed</th>
+            <th>Ideal Speed</th>
             <th>Planned (4320/day)</th>
             <th>Run / DT (stream-mins)</th>
             <th>Good / Rej (m)</th>
@@ -2505,44 +2753,14 @@ function updateAutoBackupUI(){
   if($('sWarn') && document.activeElement !== $('sWarn')) $('sWarn').value = db.settings?.warn ?? 95;
   if($('sCrit') && document.activeElement !== $('sCrit')) $('sCrit').value = db.settings?.crit ?? 100;
   if($('sPopup') && document.activeElement !== $('sPopup')) $('sPopup').value = db.settings?.popup ?? 'once';
-
-  const lastDate = localStorage.getItem('keci_last_5pm_backup_date') || 'Never';
-  if($('autoBackupStatusText')){
-    $('autoBackupStatusText').textContent = enabled
-      ? `Active while page is open (17:00 local time) • Last auto-backup: ${lastDate}`
-      : `Disabled • Last auto-backup: ${lastDate}`;
-  }
+  if($('autoBackupStatusText')) $('autoBackupStatusText').textContent = enabled
+    ? 'Daily cloud snapshot: created on first successful app connection each day. Server-side scheduled backup requires Cloud Scheduler/Function.'
+    : 'Daily cloud snapshots disabled in settings.';
 }
-
-function triggerScheduledBackupDownload(){
-  const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pultrusion_die_monitor_autobackup_' + today() + '_1700.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
+function triggerScheduledBackupDownload(){ downloadBackup(); }
 function checkFivePmAutoBackup(){
+  // Browser downloads are not a dependable backup service; cloud snapshots are handled on connection/save.
   updateAutoBackupUI();
-  const enabled = (db.settings?.autoBackup5pm ?? 'on') !== 'off';
-  if(!enabled) return;
-  if(!Array.isArray(db.dies)) return;
-
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const dateStr = today();
-  const lastBackupDate = localStorage.getItem('keci_last_5pm_backup_date');
-
-  if(hours === 17 && minutes >= 0 && lastBackupDate !== dateStr){
-    localStorage.setItem('keci_last_5pm_backup_date', dateStr);
-    triggerScheduledBackupDownload();
-    updateAutoBackupUI();
-  }
 }
 
 function exportData(){
@@ -2564,10 +2782,11 @@ function importBackup(e){
     try{
       let parsed = JSON.parse(evt.target.result);
       if(parsed && Array.isArray(parsed.dies)){
+        if(!confirm('Import this backup into the live database? The current cloud state will be captured in recoverable history first.')) return;
         db = parsed;
         ensureMachineStateShape();
         save();
-        alert('Data imported successfully.');
+        alert('Backup import submitted. Confirm the Firebase save status before closing this page.');
       } else {
         alert('Invalid backup file format.');
       }
