@@ -123,14 +123,42 @@ h1{font-size:23px;margin:0}header p{margin:4px 0 0;color:#d5dfed}.wrap{max-width
   .filters{grid-template-columns:1fr}
   .die-grid{grid-template-columns:1fr}
 }
+
+/* Firebase Authentication gate */
+body.auth-locked > header, body.auth-locked > .wrap, body.auth-locked > #modalHost { display:none !important; }
+#authGate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(135deg,#142b4a,#2457c5)}
+#authGate .auth-card{width:min(100%,430px);background:#fff;border-radius:18px;padding:28px;box-shadow:0 20px 60px #07152d55}
+#authGate h2{margin:0 0 7px;color:#142b4a}
+#authGate p{color:#667085;margin:0 0 18px}
+#authGate .field{margin:12px 0}
+#authGate .field input{border:1px solid #ccd5e3;border-radius:9px;padding:12px;width:100%;font:inherit}
+#authStatus{min-height:20px;font-size:13px;color:#b42318;margin-top:10px}
+#authGate .btn{width:100%;margin-top:8px}
+.auth-user{font-size:12px;color:#d5dfed;margin-right:4px}
+@media(max-width:600px){#authGate{padding:14px}#authGate .auth-card{padding:22px}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <!-- SheetJS for Excel (.xlsx/.xls) parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body>
-<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance • Line OEE | Life tracked in running metres</p></div><div class="actions"><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="openDieReportOptions()">Export die report</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
+<body class="auth-locked">
+<section id="authGate" aria-label="Employee sign in">
+  <div class="auth-card">
+    <h2>🔐 KECI Die Life Monitor</h2>
+    <p>Sign in with your authorized employee account to access production and die-life records.</p>
+    <form id="authLoginForm">
+      <div class="field"><label for="authEmail">Employee email</label><input id="authEmail" type="email" autocomplete="username" required placeholder="name@company.com"></div>
+      <div class="field"><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" required placeholder="Enter password"></div>
+      <button class="btn" id="authSignInBtn" type="submit">Sign in</button>
+    </form>
+    <button class="btn secondary" type="button" id="authResetBtn">Forgot password?</button>
+    <div id="authStatus" role="status" aria-live="polite"></div>
+    <div class="note">Accounts are created by the Firebase project administrator. Public self-registration is disabled.</div>
+  </div>
+</section>
+<header><div><h1>⚙ KECI Die Life Monitor</h1><p>Production • Tool room • Maintenance • Line OEE | Life tracked in running metres</p></div><div class="actions"><span class="auth-user" id="signedInUser"></span><button class="btn secondary" onclick="signOutEmployee()">Sign out</button><button class="btn secondary" onclick="exportData()">Export data (JSON)</button><button class="btn secondary" onclick="openDieReportOptions()">Export die report</button><button class="btn" onclick="showTab('production')">＋ Enter production</button></div></header>
 <div class="wrap">
 <div id="alerts"></div>
 <nav class="tabs">
@@ -373,6 +401,9 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const dbCloud = firebase.firestore();
+const auth = firebase.auth();
+let firestoreUnsubscribe = null;
+let authInitialized = false;
 
 const LINES = ['L-1', 'L-2', 'L-3', 'L-4', 'L-5', 'L-6', 'L-7', 'L-8'];
 const STREAMS = ['S-1', 'S-2', 'S-3'];
@@ -549,9 +580,47 @@ function assertFirestoreSize(value, label){
   // Firestore's hard document limit is 1 MiB; leave headroom for metadata/indexing.
   if(firestorePayloadSize(value) > 850000) throw new Error(label + ' is over the safe 850 KB document limit. No write was made. Export a backup and move to a split-collection architecture before adding more data.');
 }
-function cloudActor(){ return firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : 'unverified-browser-session'; }
+function cloudActor(){
+  const user = auth.currentUser;
+  if(!user) throw new Error('You must be signed in to save data.');
+  return user.uid;
+}
+function setAuthStatus(message, isError=true){
+  const el=$('authStatus');
+  if(el){ el.textContent=message || ''; el.style.color=isError ? '#b42318' : '#16834a'; }
+}
+async function signOutEmployee(){
+  try{ await auth.signOut(); }
+  catch(err){ alert('Unable to sign out: '+err.message); }
+}
+async function sendPasswordReset(){
+  const email=($('authEmail')?.value || '').trim();
+  if(!email){ setAuthStatus('Enter your employee email first.'); $('authEmail')?.focus(); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    setAuthStatus('Password reset email sent. Check your inbox.',false);
+  }catch(err){ setAuthStatus(err.message); }
+}
+function handleAuthState(user){
+  authInitialized=true;
+  if(user){
+    document.body.classList.remove('auth-locked');
+    $('authGate').style.display='none';
+    $('signedInUser').textContent=user.email || 'Signed in';
+    setAuthStatus('');
+    if(!firestoreUnsubscribe) loadFirebaseData();
+  }else{
+    if(firestoreUnsubscribe){ firestoreUnsubscribe(); firestoreUnsubscribe=null; }
+    cloudSyncReady=false;
+    lastSyncedDb=null;
+    document.body.classList.add('auth-locked');
+    $('authGate').style.display='flex';
+    $('signedInUser').textContent='';
+    setAuthStatus('');
+  }
+}
 function loadFirebaseData(){
-  dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
+  firestoreUnsubscribe = dbCloud.collection('monitorData').doc('mainState').onSnapshot(doc => {
     if(doc.exists){
       const remote=doc.data();
       if(remote && Array.isArray(remote.dies)){
@@ -606,6 +675,7 @@ function createDailyCloudBackup(){
   });
 }
 async function persistCloudSnapshot(){
+  if(!auth.currentUser) throw new Error('Your session has expired. Sign in again before saving.');
   if(!cloudSyncReady){ throw new Error('Cloud connection is not ready. Wait for Firebase synchronization before saving.'); }
   ensureMachineStateShape();
   const local=cloneData(db);
@@ -2982,9 +3052,32 @@ function clearAll(){
   }
 }
 
-// Initialize on load
+// Initialize only after Firebase Authentication confirms an authorized employee.
 ensureMachineStateShape();
-loadFirebaseData();
+$('authLoginForm').addEventListener('submit', async event=>{
+  event.preventDefault();
+  const email=$('authEmail').value.trim();
+  const password=$('authPassword').value;
+  const button=$('authSignInBtn');
+  button.disabled=true;
+  button.textContent='Signing in…';
+  setAuthStatus('');
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+    $('authPassword').value='';
+  }catch(err){
+    setAuthStatus(err.code==='auth/invalid-credential' || err.code==='auth/wrong-password' || err.code==='auth/user-not-found'
+      ? 'Email or password is incorrect.' : err.message);
+  }finally{
+    button.disabled=false;
+    button.textContent='Sign in';
+  }
+});
+$('authResetBtn').addEventListener('click',sendPasswordReset);
+auth.onAuthStateChanged(handleAuthState,err=>{
+  console.error('Firebase Authentication error:',err);
+  setAuthStatus('Authentication could not be initialized: '+err.message);
+});
 checkFivePmAutoBackup();
 setInterval(checkFivePmAutoBackup, 30000);
 </script>
