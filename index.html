@@ -208,6 +208,36 @@ button,input,select,textarea{max-width:100%;min-width:0}
   .table-wrap table,.compact-log-wrap table{min-width:620px}
 }
 
+
+
+/* Fix: OEE summary cards must fit narrow mobile screens */
+.oee-summary-kpis{grid-template-columns:repeat(3,minmax(0,1fr));width:100%;}
+.oee-summary-kpis>.card{min-width:0;width:100%;overflow:hidden;}
+.oee-summary-kpis .metric-label,
+.oee-summary-kpis .sub{min-width:0;overflow-wrap:anywhere;word-break:normal;}
+.oee-summary-kpis .metric{min-width:0;overflow-wrap:anywhere;}
+@media(max-width:900px){
+  .oee-summary-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .oee-summary-kpis>.card:last-child{grid-column:1/-1;}
+}
+@media(max-width:600px){
+  .oee-summary-kpis{grid-template-columns:minmax(0,1fr);gap:9px;}
+  .oee-summary-kpis>.card:last-child{grid-column:auto;}
+  .oee-summary-kpis>.card{padding:13px 14px;}
+  .oee-summary-kpis .metric{font-size:clamp(21px,7vw,27px);line-height:1.2;}
+  .oee-summary-kpis .metric-label{font-size:11px;letter-spacing:.03em;}
+  .oee-summary-kpis .sub{font-size:11px;line-height:1.4;}
+}
+
+
+/* Universal minimize / expand controls for dashboard and tab panels */
+.panel-collapse-toggle{flex:0 0 auto;border:1px solid #c8d5e8;background:#edf3fc;color:#2457c5;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;line-height:1.2}
+.panel-collapse-toggle:hover{background:#dfeafe}
+.panel-collapse-content{min-width:0}
+.panel.is-collapsed>.panel-collapse-content{display:none!important}
+.panel-head .panel-head-main{min-width:0;flex:1 1 auto}
+@media(max-width:600px){.panel-collapse-toggle{padding:7px 9px;font-size:11px}.panel-head{align-items:flex-start}.panel-head .panel-head-main{width:100%}}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -1940,7 +1970,7 @@ function renderOeeDashboard(){
     </div>`;
 
   boxesWrap.innerHTML = `
-    <div class="oee-kpi-grid" style="grid-template-columns:repeat(3,minmax(160px,1fr))">
+    <div class="oee-kpi-grid oee-summary-kpis">
       ${kpiCard('Overall OEE', overallKpi, overallKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : overallKpi.hasData ? `All recorded dates • ${num(overallKpi.run)} run stream-mins` : 'No OEE data recorded')}
       ${kpiCard('Monthly OEE', monthlyKpi, monthlyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : monthlyKpi.hasData ? `${today().slice(0,7)} • Current month` : 'No data for current month')}
       ${kpiCard('Daily OEE (Yesterday)', dailyKpi, dailyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : dailyKpi.hasData ? `${yesterdayDate} • Previous day` : `No data recorded for ${yesterdayDate}`)}
@@ -3153,5 +3183,49 @@ auth.onAuthStateChanged(handleAuthState,err=>{
 checkFivePmAutoBackup();
 setInterval(checkFivePmAutoBackup, 30000);
 </script>
+
+<script>
+// Add independent Minimize / Expand controls to every panel except the
+// Die life overview, which already has its own dedicated collapse control.
+(function initUniversalPanelCollapse(){
+  function setup(){
+    document.querySelectorAll('.panel').forEach((panel,index)=>{
+      if(panel.querySelector('#dieGrid')) return;
+      const head=Array.from(panel.children).find(el=>el.classList && el.classList.contains('panel-head'));
+      if(!head || panel.dataset.collapseReady==='1') return;
+      const content=document.createElement('div');
+      content.className='panel-collapse-content';
+      content.dataset.panelContent='1';
+      let node=head.nextElementSibling;
+      while(node){
+        const next=node.nextElementSibling;
+        content.appendChild(node);
+        node=next;
+      }
+      if(!content.childElementCount) return;
+      panel.appendChild(content);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='panel-collapse-toggle';
+      btn.setAttribute('aria-expanded','true');
+      btn.textContent='− Minimize';
+      btn.setAttribute('aria-label','Minimize section');
+      btn.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        const collapsed=panel.classList.toggle('is-collapsed');
+        btn.textContent=collapsed?'+ Expand':'− Minimize';
+        btn.setAttribute('aria-expanded',String(!collapsed));
+        btn.setAttribute('aria-label',collapsed?'Expand section':'Minimize section');
+      });
+      head.appendChild(btn);
+      panel.dataset.collapseReady='1';
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup);
+  else setup();
+})();
+</script>
+
 </body>
 </html>
