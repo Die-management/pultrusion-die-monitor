@@ -238,6 +238,8 @@ button,input,select,textarea{max-width:100%;min-width:0}
 .panel-head .panel-head-main{min-width:0;flex:1 1 auto}
 @media(max-width:600px){.panel-collapse-toggle{padding:7px 9px;font-size:11px}.panel-head{align-items:flex-start}.panel-head .panel-head-main{width:100%}}
 
+
+@media(max-width:640px){#yieldSummaryBoxes{grid-template-columns:repeat(2,minmax(0,1fr))!important}#yieldSummaryBoxes .card:last-child{grid-column:1/-1}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -265,11 +267,13 @@ button,input,select,textarea{max-width:100%;min-width:0}
 <div id="alerts"></div>
 <nav class="tabs">
 <button class="tab active" data-tab="dashboard" onclick="showTab('dashboard')">Dashboard</button>
-<button class="tab" data-tab="dies" onclick="showTab('dies')">Die master</button>
+<button class="tab" data-tab="oee" onclick="showTab('oee')">OEE</button>
+<button class="tab" data-tab="yield" onclick="showTab('yield')">Yield</button>
 <button class="tab" data-tab="production" onclick="showTab('production')">Daily production</button>
-<button class="tab" data-tab="maintenance" onclick="showTab('maintenance')">Maintenance / rechroming</button>
 <button class="tab" data-tab="machinerun" onclick="showTab('machinerun')">Machine Run &amp; Downtime</button>
-<button class="tab" data-tab="settings" onclick="handleTabClick('settings')">Settings &amp; backup</button>
+<button class="tab" data-tab="dies" onclick="showTab('dies')">Die master</button>
+<button class="tab" data-tab="maintenance" onclick="showTab('maintenance')">Maintenance / rechroming</button>
+<button class="tab" data-tab="settings" onclick="handleTabClick('settings')">Settings</button>
 </nav>
 
 <!-- DASHBOARD TAB -->
@@ -302,36 +306,37 @@ button,input,select,textarea{max-width:100%;min-width:0}
   <div id="dieGrid" class="die-grid"></div>
 </div>
 
-<!-- MINIMISED OEE SECTION ON DASHBOARD (OEE BOXES + VIEW FILTER) -->
+<!-- OEE OVERVIEW: ONLY THE THREE KEY KPI BOXES -->
 <div class="panel">
   <div class="panel-head">
     <div>
       <h2>OEE Overview (L-1 to L-8)</h2>
-      <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams/line) • Select view filter to expand detailed tables</span>
+      <span class="sub">Overall OEE • Current Month OEE • Yesterday's Daily OEE</span>
     </div>
-    <div class="filters">
-      <select id="oeeViewModeFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px;font-weight:700;color:var(--blue)">
-        <option value="summary">OEE Summary Boxes Only</option>
-        <option value="daily">Machine-Wise Daily OEE</option>
-        <option value="monthly">Machine-Wise Monthly OEE</option>
-        <option value="overall">Overall Monthly OEE</option>
-      </select>
-      <select id="oeeLineFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
-        <option value="">All Lines (L-1 to L-8)</option>
-      </select>
-      <input type="date" id="oeeDateFilter" onchange="renderOeeDashboard()" title="Filter by Date" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
-      <select id="oeeMonthFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
-        <option value="">All Months</option>
-      </select>
-      <button class="btn secondary small" onclick="$('oeeViewModeFilter').value='summary';$('oeeLineFilter').value='';$('oeeDateFilter').value='';$('oeeMonthFilter').value='';renderOeeDashboard()">Reset</button>
-    </div>
+    <button class="btn secondary small" onclick="showTab('oee')">View OEE Details →</button>
   </div>
   <div class="panel-body">
     <div id="oeeSummaryBoxesWrap"></div>
-    <div id="oeeDetailedTableWrap" class="table-wrap compact-log-wrap hidden" style="margin-top:14px"></div>
   </div>
 </div>
 
+<!-- YIELD OVERVIEW: THREE SUMMARY KPI BOXES -->
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Yield Overview</h2>
+      <span class="sub">Yesterday's Yield • Current Month Yield • Overall Yield</span>
+    </div>
+    <button class="btn secondary small" onclick="showTab('yield')">View Yield Details →</button>
+  </div>
+  <div class="panel-body">
+    <div class="cards" id="yieldSummaryBoxes" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+  </div>
+</div>
+</section>
+
+<!-- DEDICATED YIELD TAB: DETAILED DAILY AND MONTHLY REPORTS -->
+<section id="tab-yield" class="hidden">
 <!-- DAY-WISE PRODUCTION V/S REJECTION YIELD TABLE (GROUPED: CURRENT MONTH VS PREVIOUS MONTH) -->
 <div class="panel">
   <div class="panel-head">
@@ -368,6 +373,36 @@ button,input,select,textarea{max-width:100%;min-width:0}
   </div>
   <div class="table-wrap compact-log-wrap" id="monthlyYieldTable"></div>
 </div>
+</section>
+
+<!-- DEDICATED OEE TAB: DETAILED MACHINE-WISE AND MONTH-WISE REPORTS -->
+<section id="tab-oee" class="hidden">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>OEE Detailed Analysis (L-1 to L-8)</h2>
+        <span class="sub">Planned Run Time: 4,320 stream-mins/day (1,440 min × 3 streams/line) • Production day: 08:00 to 08:00</span>
+      </div>
+      <div class="filters">
+        <select id="oeeViewModeFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px;font-weight:700;color:var(--blue)">
+          <option value="daily">Machine-Wise Daily OEE</option>
+          <option value="monthly">Machine-Wise Monthly OEE</option>
+          <option value="overall">Overall Monthly OEE</option>
+        </select>
+        <select id="oeeLineFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+          <option value="">All Lines (L-1 to L-8)</option>
+        </select>
+        <input type="date" id="oeeDateFilter" onchange="renderOeeDashboard()" title="Filter by Date" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+        <select id="oeeMonthFilter" onchange="renderOeeDashboard()" style="padding:7px 9px;border:1px solid #ccd5e3;border-radius:8px">
+          <option value="">All Months</option>
+        </select>
+        <button class="btn secondary small" onclick="$('oeeViewModeFilter').value='daily';$('oeeLineFilter').value='';$('oeeDateFilter').value='';$('oeeMonthFilter').value='';renderOeeDashboard()">Reset</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div id="oeeDetailedTableWrap" class="table-wrap compact-log-wrap"></div>
+    </div>
+  </div>
 </section>
 
 <!-- DIE MASTER TAB -->
@@ -907,6 +942,16 @@ function showTab(tab){
   if(tab==='machinerun'){
     renderLineMatrix();
     renderMachineRunLog();
+  }
+  if(tab==='oee'){
+    renderOeeDashboard();
+  }
+  if(tab==='yield'){
+    populateYieldDieFilter();
+    populateMonthYieldFilters();
+    renderDayWiseYield();
+    renderMonthWiseYield();
+    renderYieldOverview();
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1895,7 +1940,7 @@ function renderOeeDashboard(){
     if(sortedMonths.includes(prevM)) monthSel.value = prevM;
   }
 
-  const viewMode = $('oeeViewModeFilter')?.value || 'summary';
+  const viewMode = $('oeeViewModeFilter')?.value || 'daily';
   const lFilter = $('oeeLineFilter')?.value || '';
   const dFilter = $('oeeDateFilter')?.value || '';
   const mFilter = $('oeeMonthFilter')?.value || '';
@@ -1958,10 +2003,14 @@ function renderOeeDashboard(){
     return { value:availability * performance * quality * 100, hasData:true, missingIdealSpeed:false, planned, run, good, rejected };
   };
 
-  const overallKpi = calculateOeeForPeriod(null, true);
-  const monthlyKpi = calculateOeeForPeriod(today().slice(0, 7), true);
   const yesterdayDate = getYesterdayDate();
-  const dailyKpi = calculateOeeForPeriod(yesterdayDate, false);
+  const defaultOeeMonth = today().slice(0,7);
+  const selectedOeeDate = $('oeeOverviewDateFilter')?.value || yesterdayDate;
+  const selectedOeeMonth = $('oeeOverviewMonthFilter')?.value || defaultOeeMonth;
+  const overallKpi = calculateOeeForPeriod(null, true);
+  const monthlyKpi = calculateOeeForPeriod(selectedOeeMonth, true);
+  const dailyKpi = calculateOeeForPeriod(selectedOeeDate, false);
+  const oeeMonthLabel = selectedOeeMonth || 'Selected month';
   const kpiCard = (label, result, detail) => `
     <div class="card" style="margin:0">
       <div class="metric-label">${label}</div>
@@ -1972,19 +2021,22 @@ function renderOeeDashboard(){
   boxesWrap.innerHTML = `
     <div class="oee-kpi-grid oee-summary-kpis">
       ${kpiCard('Overall OEE', overallKpi, overallKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : overallKpi.hasData ? `All recorded dates • ${num(overallKpi.run)} run stream-mins` : 'No OEE data recorded')}
-      ${kpiCard('Monthly OEE', monthlyKpi, monthlyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : monthlyKpi.hasData ? `${today().slice(0,7)} • Current month` : 'No data for current month')}
-      ${kpiCard('Daily OEE (Yesterday)', dailyKpi, dailyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : dailyKpi.hasData ? `${yesterdayDate} • Previous day` : `No data recorded for ${yesterdayDate}`)}
+      <div class="card" style="margin:0">
+        <div class="metric-label">Monthly OEE</div>
+        <div class="metric" style="color:${(!monthlyKpi.hasData || monthlyKpi.missingIdealSpeed)?'#667085':monthlyKpi.value>=75?'#16834a':monthlyKpi.value>=50?'#b96b00':'#c62828'}">${monthlyKpi.hasData && !monthlyKpi.missingIdealSpeed ? num(monthlyKpi.value)+'%' : '—'}</div>
+        <div class="sub">${monthlyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : monthlyKpi.hasData ? `${oeeMonthLabel} • Selected month` : `No data for ${oeeMonthLabel}`}</div>
+        <label class="sub" style="display:block;margin-top:8px">Select month <input id="oeeOverviewMonthFilter" type="month" value="${esc(selectedOeeMonth)}" onchange="renderOeeDashboard()" style="display:block;max-width:100%;margin-top:4px;padding:6px;border:1px solid #ccd5e3;border-radius:7px"></label>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="metric-label">Daily OEE</div>
+        <div class="metric" style="color:${(!dailyKpi.hasData || dailyKpi.missingIdealSpeed)?'#667085':dailyKpi.value>=75?'#16834a':dailyKpi.value>=50?'#b96b00':'#c62828'}">${dailyKpi.hasData && !dailyKpi.missingIdealSpeed ? num(dailyKpi.value)+'%' : '—'}</div>
+        <div class="sub">${dailyKpi.missingIdealSpeed ? 'Set Ideal Speed for every active line' : dailyKpi.hasData ? `${selectedOeeDate} • Selected date` : `No data recorded for ${selectedOeeDate}`}</div>
+        <label class="sub" style="display:block;margin-top:8px">Select date <input id="oeeOverviewDateFilter" type="date" value="${esc(selectedOeeDate)}" onchange="renderOeeDashboard()" style="display:block;max-width:100%;margin-top:4px;padding:6px;border:1px solid #ccd5e3;border-radius:7px"></label>
+      </div>
     </div>
-    <div class="oee-line-boxes">${lineBoxHtml}</div>
   `;
 
-  // Minimised by default ('summary' hides table); show detailed table only when user selects another view mode
-  if(viewMode === 'summary'){
-    tableWrap.classList.add('hidden');
-    tableWrap.innerHTML = '';
-    return;
-  }
-
+  // Detailed OEE tables are displayed only inside the dedicated OEE tab.
   tableWrap.classList.remove('hidden');
 
   if(viewMode === 'overall'){
@@ -2211,6 +2263,7 @@ function renderDashboard(){
   }
 
   renderOeeDashboard();
+  renderYieldOverview();
   populateYieldDieFilter();
   populateMonthYieldFilters();
   renderDayWiseYield();
@@ -2354,6 +2407,46 @@ function renderMonthWiseYield(){
       </tbody>
     </table>
   `;
+}
+
+function renderYieldOverview(){
+  const wrap = $('yieldSummaryBoxes');
+  if(!wrap) return;
+  const now = new Date();
+  const defaultYesterday = getYesterdayDate();
+  const defaultMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const selectedDate = $('yieldOverviewDateFilter')?.value || defaultYesterday;
+  const selectedMonth = $('yieldOverviewMonthFilter')?.value || defaultMonth;
+
+  function calcYield(records){
+    let good = 0, reject = 0;
+    records.forEach(p => {
+      good += Number(p.length || 0);
+      reject += Number(p.rejection || 0);
+    });
+    const gross = good + reject;
+    return { pct: gross > 0 ? good / gross * 100 : 100, good, reject };
+  }
+
+  const yesterdayData = calcYield(db.production.filter(p => (p.date || '').trim() === selectedDate));
+  const monthlyData = calcYield(db.production.filter(p => (p.date || '').slice(0,7) === selectedMonth));
+  const overallData = calcYield(db.production);
+  const monthLabel = selectedMonth ? (() => { const [y,m]=selectedMonth.split('-').map(Number); return new Date(y,m-1,1).toLocaleString('default',{month:'long',year:'numeric'}); })() : 'Selected month';
+  const items = [
+    {label:'Yesterday Yield',data:yesterdayData,period:selectedDate,filter:`<label class="sub" style="display:block;margin-top:8px">Select date <input id="yieldOverviewDateFilter" type="date" value="${esc(selectedDate)}" onchange="renderYieldOverview()" style="display:block;max-width:100%;margin-top:4px;padding:6px;border:1px solid #ccd5e3;border-radius:7px"></label>`},
+    {label:'Monthly Yield',data:monthlyData,period:monthLabel,filter:`<label class="sub" style="display:block;margin-top:8px">Select month <input id="yieldOverviewMonthFilter" type="month" value="${esc(selectedMonth)}" onchange="renderYieldOverview()" style="display:block;max-width:100%;margin-top:4px;padding:6px;border:1px solid #ccd5e3;border-radius:7px"></label>`},
+    {label:'Overall Yield',data:overallData,period:'All production records',filter:''}
+  ];
+  wrap.innerHTML = items.map(item => {
+    const d=item.data, color = d.pct >= 95 ? '#16834a' : d.pct >= 90 ? '#b96b00' : '#c62828';
+    return `<div class="card">
+      <div class="metric-label">${item.label}</div>
+      <div class="metric" style="color:${color}">${num(d.pct)}%</div>
+      <div class="sub">${esc(item.period)}</div>
+      <div class="sub">Good: ${num(d.good)} m • Rejection: ${num(d.reject)} m</div>
+      ${item.filter}
+    </div>`;
+  }).join('');
 }
 
 function renderDayWiseYield(){
