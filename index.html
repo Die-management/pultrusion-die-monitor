@@ -136,6 +136,78 @@ body.auth-locked > header, body.auth-locked > .wrap, body.auth-locked > #modalHo
 #authGate .btn{width:100%;margin-top:8px}
 .auth-user{font-size:12px;color:#d5dfed;margin-right:4px}
 @media(max-width:600px){#authGate{padding:14px}#authGate .auth-card{padding:22px}}
+
+
+/* Comprehensive mobile layout overrides */
+html{width:100%;max-width:100%;overflow-x:hidden}
+body{width:100%;max-width:100%;overflow-x:hidden}
+img,svg,canvas,video{max-width:100%;height:auto}
+button,input,select,textarea{max-width:100%;min-width:0}
+.wrap,header,.panel,.panel-body,.panel-head,.card,.line-card,.side-box{min-width:0}
+.panel-body>*{max-width:100%}
+.actions,.form-actions,.modal-actions{min-width:0}
+.actions .btn,.form-actions .btn,.modal-actions .btn{white-space:normal;overflow-wrap:anywhere}
+.filters>*{min-width:0}
+.form-grid>*{min-width:0}
+.die-grid>*{min-width:0}
+.line-grid>*{min-width:0}
+.cards>*{min-width:0}
+.stream-row>*{min-width:0}
+.oee-kpi-grid>*{min-width:0}
+.oee-line-boxes>*{min-width:0}
+.table-wrap,.compact-log-wrap{width:100%;max-width:100%;overflow-x:auto;overflow-y:auto;overscroll-behavior-x:contain}
+@media(max-width:600px){
+  header{width:100%;gap:12px}
+  header>div{min-width:0;max-width:100%}
+  header .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wrap{width:100%;max-width:100%;padding:10px}
+  .tabs{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tab{overflow-wrap:anywhere}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{min-width:0;overflow-wrap:anywhere}
+  .metric{font-size:clamp(17px,5vw,22px);overflow-wrap:anywhere}
+  .panel-head{min-width:0}
+  .panel-head>*{min-width:0;max-width:100%}
+  .panel-head .actions{width:100%}
+  .panel-body{min-width:0;padding:10px}
+  .filters{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .filters .field{width:100%;min-width:0}
+  .form-grid{grid-template-columns:minmax(0,1fr);width:100%}
+  .form-grid .wide{grid-column:1}
+  .field input,.field select,.field textarea{min-width:0;width:100%}
+  .form-actions,.modal-actions{display:flex;flex-wrap:wrap}
+  .form-actions .btn,.modal-actions .btn{flex:1 1 125px;min-width:0}
+  .dual-detail-container{grid-template-columns:minmax(0,1fr)}
+  .die-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .die-card{min-width:0;overflow-wrap:anywhere}
+  .line-grid{grid-template-columns:minmax(0,1fr)}
+  .line-card{min-width:0}
+  .line-card-top{flex-wrap:wrap}
+  .stream-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stream-box{min-width:0;overflow-wrap:anywhere}
+  .oee-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .oee-line-boxes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .yield-bar-wrap{min-width:0}
+  .bar{min-width:45px}
+  .table-wrap table,.compact-log-wrap table{width:100%;min-width:680px}
+  .table-wrap th,.table-wrap td{white-space:normal;overflow-wrap:anywhere}
+  .compact-log-wrap table th,.compact-log-wrap table td{white-space:normal;overflow-wrap:anywhere}
+  .modal-backdrop{width:100%;padding:8px}
+  .modal{width:100%;min-width:0;padding:14px;overflow-wrap:anywhere}
+  #authGate{width:100%;min-height:100svh;padding:14px}
+  #authGate .auth-card{width:100%;max-width:430px;padding:20px}
+  .footer{padding:12px 6px}
+}
+@media(max-width:380px){
+  header{padding:13px}
+  header .actions{grid-template-columns:minmax(0,1fr)}
+  .filters{grid-template-columns:minmax(0,1fr)}
+  .die-grid{grid-template-columns:minmax(0,1fr)}
+  .oee-kpi-grid,.oee-line-boxes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tab{font-size:10px}
+  .table-wrap table,.compact-log-wrap table{min-width:620px}
+}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
