@@ -569,6 +569,7 @@ let db = {
   production:[],
   maintenance:[],
   machineRunLogs:[],
+  actualSpeedHistory:{}, // keyed by OEE date | line | stream
   machineRunLogDeletions:[],
   lineStates: createDefaultLineStates(),
   settings:{warn:95, crit:100, popup:'once', autoBackup5pm:'on'}
@@ -616,6 +617,7 @@ function toggleDieGrid(){
 
 function ensureMachineStateShape(){
   if(!Array.isArray(db.machineRunLogs)) db.machineRunLogs = [];
+  if(!db.actualSpeedHistory || typeof db.actualSpeedHistory !== 'object') db.actualSpeedHistory = {};
   if(!Array.isArray(db.machineRunLogDeletions)) db.machineRunLogDeletions = [];
   enforceMachineRunLogDeletions(db);
   if(!db.lineStates || typeof db.lineStates !== 'object') db.lineStates = createDefaultLineStates();
@@ -645,6 +647,10 @@ function ensureMachineStateShape(){
       db.lineStates[line].status = anyStreamRunning ? 'Running' : 'Stopped';
     }
   });
+  migrateActualSpeedHistoryFromLogs();
+  // Seed only the current operational day from live settings; never seed older dates.
+  const currentOeeDay = getOeeProductionDayKey(new Date());
+  LINES.forEach(line => recordActualSpeedSnapshot(currentOeeDay, line, STREAMS, db.lineStates[line]?.speed, false));
 }
 
 // Stable identities for merging records edited by different employees.
@@ -1145,12 +1151,51 @@ function renderLineMatrix(){
   }).join('');
 }
 
+// Actual speed snapshots are immutable historical values keyed by operational
+// production date (08:00-08:00), machine line and stream.
+function actualSpeedHistoryKey(dayKey, line, stream){
+  return `${dayKey}|${normalizeLineCode(line)}|${stream}`;
+}
+
+function recordActualSpeedSnapshot(dayKey, line, streamList, speed, overwrite=false){
+  if(!dayKey || !LINES.includes(normalizeLineCode(line))) return;
+  const n = Number(speed);
+  if(!Number.isFinite(n) || n <= 0) return;
+  if(!db.actualSpeedHistory || typeof db.actualSpeedHistory !== 'object') db.actualSpeedHistory = {};
+  (streamList || STREAMS).forEach(stream => {
+    if(!STREAMS.includes(stream)) return;
+    const key = actualSpeedHistoryKey(dayKey, line, stream);
+    if(overwrite || !Number.isFinite(Number(db.actualSpeedHistory[key])) || Number(db.actualSpeedHistory[key]) <= 0){
+      db.actualSpeedHistory[key] = n;
+    }
+  });
+}
+
+function migrateActualSpeedHistoryFromLogs(){
+  if(!db.actualSpeedHistory || typeof db.actualSpeedHistory !== 'object') db.actualSpeedHistory = {};
+  (db.machineRunLogs || []).forEach(r => {
+    const line = normalizeLineCode(r.line);
+    const speed = Number(r.speed);
+    if(!LINES.includes(line) || !Number.isFinite(speed) || speed <= 0) return;
+    const streams = (r.stream === 'ALL' || String(r.stream || '').includes('All'))
+      ? STREAMS
+      : (STREAMS.includes(r.stream) ? [r.stream] : STREAMS);
+    const days = r.stopDateTime
+      ? Object.keys(splitDowntimeByOeeDay(r.stopDateTime, r.resumeDateTime))
+      : [r.date || ''];
+    days.forEach(dayKey => recordActualSpeedSnapshot(dayKey, line, streams, speed, false));
+  });
+}
+
 function updateLineSpeed(line, val){
   ensureMachineStateShape();
   const speed = Number(val);
   if(isNaN(speed) || speed <= 0) return;
   db.lineStates[line].speed = speed;
+  // A speed change applies to the currently active operational day only.
+  recordActualSpeedSnapshot(getOeeProductionDayKey(new Date()), line, STREAMS, speed, true);
   save();
+  renderOeeDashboard();
 }
 
 function updateLineIdealSpeed(line, val){
@@ -1276,6 +1321,8 @@ function confirmStopAction(line, targetStream){
       reason
     });
   }
+  // Capture the speed for the affected stream(s) on the stop's operational day.
+  recordActualSpeedSnapshot(getOeeProductionDayKey(stopDt), line, streamsToStop, st.speed, false);
 
   $('modalHost').innerHTML = '';
   save();
@@ -1518,6 +1565,13 @@ function saveEditedMachineRun(id){
     };
   });
 
+  const editedLog = db.machineRunLogs.find(r => r.id === id);
+  if(editedLog){
+    const editedStreams = (stream === 'ALL' || String(stream || '').includes('All')) ? STREAMS : [stream];
+    const editedDays = stopDt ? Object.keys(splitDowntimeByOeeDay(stopDt, resumeDt)) : [dateVal];
+    editedDays.forEach(dayKey => recordActualSpeedSnapshot(dayKey, line, editedStreams, speed, true));
+  }
+
   // Sync live line state if this is the most recent log for that line
   const latestForLine = db.machineRunLogs.find(r => r.line === line);
   if(latestForLine && latestForLine.id === id && db.lineStates[line]){
@@ -1699,6 +1753,9 @@ function importMachineRunFile(e){
         };
 
         db.machineRunLogs.unshift(entry);
+        const importedStreams = (targetStream === 'ALL' || String(targetStream || '').includes('All')) ? STREAMS : [targetStream];
+        const importedDays = stopDateTime ? Object.keys(splitDowntimeByOeeDay(stopDateTime, resumeDateTime)) : [dateVal];
+        importedDays.forEach(dayKey => recordActualSpeedSnapshot(dayKey, line, importedStreams, speed, false));
         if(db.lineStates[line]){
           db.lineStates[line].status = statusVal;
           db.lineStates[line].speed = speed;
@@ -1800,41 +1857,43 @@ function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
   const prodLogs = db.production.filter(p => normalizeLineCode(p.machine) === line && matchesPeriod(p.date));
   const dayDowntimeMap = {};
   const daySpeedMap = {};
-  const ensureDay = (key, actualSpeed) => {
+  const ensureDay = key => {
     if(!key) return;
     if(!Object.prototype.hasOwnProperty.call(dayDowntimeMap, key)){
       dayDowntimeMap[key] = 0;
-      daySpeedMap[key] = [];
+      daySpeedMap[key] = {};
     }
-    if(Number(actualSpeed) > 0) daySpeedMap[key].push(Number(actualSpeed));
   };
 
   lineLogs.forEach(r => {
     const isAllStreams = (r.stream === 'ALL' || String(r.stream || '').includes('All'));
     const streamMultiplier = isAllStreams ? STREAMS.length : 1;
-    const actualSpeed = Number(r.speed ?? db.lineStates[line]?.speed ?? 0);
-    if(r.stopDateTime){
-      const split = splitDowntimeByOeeDay(r.stopDateTime, r.resumeDateTime);
-      Object.entries(split).forEach(([dayKey, rawMinutes]) => {
-        if(!matchesPeriod(dayKey)) return;
-        ensureDay(dayKey, actualSpeed);
-        dayDowntimeMap[dayKey] += rawMinutes * streamMultiplier;
-      });
-    } else {
-      // Legacy/imported records without timestamps retain stored downtime.
-      const dayKey = r.date || '';
+    const streamsForLog = isAllStreams ? STREAMS : (STREAMS.includes(r.stream) ? [r.stream] : STREAMS);
+    const legacySpeed = Number(r.speed);
+    const days = r.stopDateTime
+      ? splitDowntimeByOeeDay(r.stopDateTime, r.resumeDateTime)
+      : {[r.date || '']: 0};
+    Object.entries(days).forEach(([dayKey, rawMinutes]) => {
       if(!matchesPeriod(dayKey)) return;
-      ensureDay(dayKey, actualSpeed);
-      const rawMins = Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
-      const storedStreamMins = Number(r.downtimeMins);
-      dayDowntimeMap[dayKey] += Number.isFinite(storedStreamMins) && storedStreamMins > 0
-        ? storedStreamMins
-        : Math.max(0, rawMins * streamMultiplier);
-    }
+      ensureDay(dayKey);
+      // Backfill only from a speed explicitly saved in this historical log.
+      if(Number.isFinite(legacySpeed) && legacySpeed > 0){
+        recordActualSpeedSnapshot(dayKey, line, streamsForLog, legacySpeed, false);
+      }
+      if(r.stopDateTime) dayDowntimeMap[dayKey] += rawMinutes * streamMultiplier;
+      else {
+        // Legacy/imported records without timestamps retain stored downtime.
+        const rawMins = Number(r.rawDowntimeMins ?? r.downtimeMins ?? 0);
+        const storedStreamMins = Number(r.downtimeMins);
+        dayDowntimeMap[dayKey] += Number.isFinite(storedStreamMins) && storedStreamMins > 0
+          ? storedStreamMins
+          : Math.max(0, rawMins * streamMultiplier);
+      }
+    });
   });
 
-  // Production dates are already tagged to their 08:00-to-08:00 production day.
-  prodLogs.forEach(p => ensureDay(p.date || '', db.lineStates[line]?.speed ?? 0));
+  // Production dates are included, but never inherit today's live speed.
+  prodLogs.forEach(p => ensureDay(p.date || ''));
 
   const activeDays = Object.keys(dayDowntimeMap).filter(matchesPeriod);
   let goodM = 0, rejM = 0;
@@ -1850,7 +1909,7 @@ function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
   if(!hasData){
     return {
       hasData:false, line, plannedMins:0, runMins:0, downtimeMins:0,
-      avgSpeed:Number(db.lineStates[line]?.speed || 0), idealSpeed:missingIdealSpeed ? null : idealSpeed,
+      avgSpeed:null, idealSpeed:missingIdealSpeed ? null : idealSpeed,
       missingIdealSpeed, idealCapacityM:0, goodM:0, rejM:0,
       availability:0, performance:null, quality:0, oee:null
     };
@@ -1860,14 +1919,17 @@ function computeLinePeriodOee(line, dateOrMonthFilter, isMonthly){
   activeDays.forEach(dayKey => {
     plannedMins += PLANNED_STREAM_MINS_PER_DAY;
     downtimeMins += Math.min(PLANNED_STREAM_MINS_PER_DAY, Math.max(0, dayDowntimeMap[dayKey]));
-    const speeds = daySpeedMap[dayKey];
-    actualSpeedSum += speeds.length
-      ? speeds.reduce((a,b)=>a+b,0) / speeds.length
-      : Number(db.lineStates[line]?.speed || 0);
+    const speeds = STREAMS.map(stream => Number(db.actualSpeedHistory[actualSpeedHistoryKey(dayKey, line, stream)]))
+      .filter(v => Number.isFinite(v) && v > 0);
+    if(speeds.length) actualSpeedSum += speeds.reduce((a,b)=>a+b,0) / speeds.length;
   });
 
   const runMins = Math.max(0, plannedMins - downtimeMins);
-  const avgSpeed = activeDays.length ? actualSpeedSum / activeDays.length : Number(db.lineStates[line]?.speed || 0);
+  const daysWithSpeed = activeDays.filter(dayKey => STREAMS.some(stream => {
+    const v = Number(db.actualSpeedHistory[actualSpeedHistoryKey(dayKey, line, stream)]);
+    return Number.isFinite(v) && v > 0;
+  })).length;
+  const avgSpeed = daysWithSpeed ? actualSpeedSum / daysWithSpeed : null;
   const availability = plannedMins > 0 ? Math.min(1, runMins / plannedMins) : 0;
   const totalOutput = goodM + rejM;
   const quality = totalOutput > 0 ? Math.min(1, goodM / totalOutput) : 1;
@@ -2887,10 +2949,15 @@ function importProductionExcel(e){
 function renderProduction(){
   let q = ($('prodSearch')?.value||'').toLowerCase();
   let dateFilter = $('prodDateFilter')?.value || '';
-let rows = db.production
-  .filter(p => (!dateFilter || p.date === dateFilter) &&
-    (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q))
-  .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Show the newest production date first. For entries on the same date,
+  // preserve the database order (new entries/imports are unshifted to the top),
+  // so the most recently logged entry remains first within that date.
+  let rows = db.production
+    .map((p, index) => ({ p, index }))
+    .filter(({p}) => (!dateFilter || p.date===dateFilter) &&
+      (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q))
+    .sort((a, b) => String(b.p.date || '').localeCompare(String(a.p.date || '')) || a.index - b.index)
+    .map(({p}) => p);
   $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Rejection (m)</th><th>Operator</th><th>Remarks</th><th>Actions</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td><strong style="color:${Number(p.rejection||0)>0?'var(--red)':'inherit'}">${num(p.rejection||0)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="editProduction('${p.id}')">Edit</button> <button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
 }
 
