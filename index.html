@@ -2887,7 +2887,10 @@ function importProductionExcel(e){
 function renderProduction(){
   let q = ($('prodSearch')?.value||'').toLowerCase();
   let dateFilter = $('prodDateFilter')?.value || '';
-  let rows = db.production.filter(p=>(!dateFilter || p.date===dateFilter) && (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q));
+let rows = db.production
+  .filter(p => (!dateFilter || p.date === dateFilter) &&
+    (p.date+' '+p.dieId+' '+(p.revision||'')+' '+(p.machine||'')+' '+(p.operator||'')).toLowerCase().includes(q))
+  .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   $('productionTable').innerHTML = rows.length ? `<table><thead><tr><th>Date</th><th>Die ID</th><th>Revision</th><th>Side</th><th>Machine</th><th>Shift</th><th>Length (m)</th><th>Rejection (m)</th><th>Operator</th><th>Remarks</th><th>Actions</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.date)}</td><td><strong>${esc(p.dieId)}</strong></td><td>${esc(p.revision||'—')}</td><td>Side ${esc(p.side||'A')}</td><td>${esc(p.machine||'—')}</td><td>${esc(p.shift)}</td><td><strong>${num(p.length)} m</strong></td><td><strong style="color:${Number(p.rejection||0)>0?'var(--red)':'inherit'}">${num(p.rejection||0)} m</strong></td><td>${esc(p.operator||'—')}</td><td>${esc(p.remarks||'—')}</td><td><button class="btn secondary small" onclick="editProduction('${p.id}')">Edit</button> <button class="btn secondary small" onclick="deleteProduction('${p.id}')">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No production entries recorded.</div>';
 }
 
